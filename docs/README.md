@@ -8,7 +8,7 @@
 | 系统管理员 | [管理员手册](./admin-manual.md) · [用户操作手册](./user-manual.md) · [安全自查清单](./security-checklist.md) |
 | 测试 / UAT | [验收指南](./acceptance.md) · [人工验收清单](./acceptance-checklist.md) · [验收报告模板](./acceptance-report-template.md) |
 | 研发 | [SRS](./srs.md) · [DSS](./dss.md) · [OpenAPI](./openapi.yml) · [迭代计划](./iteration-plan.md) · [代码自动生成计划](./code-gen-plan.md) · [迭代偏差与修复](./issues/) |
-| 运维 / 部署 | [运维手册](./operations.md) · [上线安全自查](./security-checklist.md) · [deploy/SECURITY.md](../deploy/SECURITY.md) |
+| 运维 / 部署 | [部署快速指南](./deploy-quickstart.md) · [运维手册](./operations.md) · [上线安全自查](./security-checklist.md) · [deploy/SECURITY.md](../deploy/SECURITY.md) |
 | 数据库 | [ER 图](../db/erd.md) · `db/schema/` |
 
 自动化验收：`../scripts/acceptance.sh`（用法见 [acceptance.md](./acceptance.md)）。
@@ -20,6 +20,7 @@ docs/
 ├── README.md                      ← 本文件（索引）
 ├── user-manual.md                 业务用户按钮级手册
 ├── admin-manual.md                系统管理员手册
+├── deploy-quickstart.md           部署快速指南（单机 5 分钟版）
 ├── operations.md                  运维 / 部署 / 排障
 ├── faq.md                         常见问题
 ├── acceptance.md                  自动化验收用法

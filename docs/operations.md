@@ -41,9 +41,16 @@ curl -s http://localhost:8080/actuator/health
 
 ## 3. 生产部署要点
 
-- 使用 [deploy/docker-compose.prod.yml](../deploy/docker-compose.prod.yml) 与 Nginx 配置时，按环境修改宿主机、卷路径与镜像标签。
-- **不得** 将未轮换的 `deploy/.env` 提交到公开仓库；生产口令用 `openssl` 等生成（见 `deploy/SECURITY.md`）。
+| 场景 | 编排文件 | 适配脚本 |
+| --- | --- | --- |
+| 单机部署（一台云主机，无 CI/CD） | [`docker-compose.single.yml`](../deploy/docker-compose.single.yml) | `scripts/build-images.sh`、`scripts/deploy-remote.sh`、`deploy/scripts/rollback.sh` |
+| Jenkins + 私有 Registry + 双副本 | [`docker-compose.prod.yml`](../deploy/docker-compose.prod.yml) | [`deploy/Jenkinsfile`](../deploy/Jenkinsfile) |
+
+- 单机首次上线 5 分钟流程：见 [部署快速指南](./deploy-quickstart.md)。
+- **不得** 将未轮换的 `deploy/.env` 提交到公开仓库；生产口令用 `openssl` 等生成（见 [`deploy/SECURITY.md`](../deploy/SECURITY.md)）。
 - 应用与数据库、Redis 应处于 **内网** 或安全组隔离；MinIO 控制台勿对公网开放。
+- 服务器首次初始化（装 Docker/防火墙/目录/cron）：`sudo bash deploy/scripts/init-server.sh`
+- HTTPS 证书：`sudo /opt/crms/scripts/letsencrypt.sh issue <domain> <email>`
 
 ---
 

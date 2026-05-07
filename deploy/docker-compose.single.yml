@@ -1,0 +1,120 @@
+# 单机部署编排（你的云主机就靠它）
+#
+# 与 docker-compose.test.yml 的差别：
+#   - 不暴露 mysql/redis/minio 端口到外网（仅容器网络内可达）
+#   - 镜像默认从本地 docker images 取（无需私有 registry）
+#   - 通过 nginx 容器统一对外暴露 80（前端 + /api 反代到 app）
+#
+# 与 docker-compose.prod.yml 的差别：
+#   - 单 app 实例（不双副本）
+#   - 不依赖外置 mysql/redis/minio，全部 docker 内置
+#
+# 启动：cd deploy && docker compose -f docker-compose.single.yml up -d
+# 关停：docker compose -f docker-compose.single.yml down
+# 查日志：docker compose -f docker-compose.single.yml logs -f crms-app
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: crms-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?未设置 MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-crms}
+      MYSQL_USER: ${MYSQL_USERNAME:-crms}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?未设置 MYSQL_PASSWORD}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --slow_query_log=ON
+      - --long_query_time=1
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+      - ./logs/mysql:/var/log/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: crms-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1000", "--appendonly", "yes"]
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: crms-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?未设置 MINIO_ROOT_PASSWORD}
+    volumes:
+      - ./data/minio:/data
+    # MinIO 控制台 9001 仅在调试时手动 docker compose port minio 9001 暴露
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  crms-app:
+    image: crms-app:${IMAGE_TAG:-current}
+    container_name: crms-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-crms}
+      MYSQL_USERNAME: ${MYSQL_USERNAME:-crms}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      CRMS_STORAGE_TYPE: ${CRMS_STORAGE_TYPE:-minio}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET:-crms}
+      CRMS_AES_KEY: ${CRMS_AES_KEY:?未设置 CRMS_AES_KEY，参考 deploy/SECURITY.md 生成强密钥}
+      CRMS_DEFAULT_PASSWORD: ${CRMS_DEFAULT_PASSWORD:-Crms@123456}
+    volumes:
+      - ./logs/app:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  crms-web:
+    image: crms-web:${IMAGE_TAG:-current}
+    container_name: crms-web
+    restart: unless-stopped
+    depends_on:
+      crms-app:
+        condition: service_healthy
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    # 如启用 HTTPS：
+    #   ports: ["80:80", "443:443"]
+    #   volumes: 挂载 letsencrypt 证书；自行调整 crms-web/nginx.conf
