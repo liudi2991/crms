@@ -42,7 +42,7 @@ echo "==> [0/6] 前置校验  TAG=$TAG  TARGET=$SSH_TARGET  REMOTE_DIR=$REMOTE_D
 
 for img in "crms-app:$TAG" "crms-web:$TAG"; do
   if ! docker image inspect "$img" >/dev/null 2>&1; then
-    echo "ERR: 本机找不到镜像 $img，请先跑 ./scripts/build-images.sh $TAG" >&2
+    echo "ERR: 本机找不到镜像 ${img}，请先跑 ./scripts/build-images.sh ${TAG}" >&2
     exit 1
   fi
 done
@@ -54,7 +54,7 @@ if [ ! -f deploy/.env ]; then
 fi
 
 ssh -o ConnectTimeout=10 -o BatchMode=yes "$SSH_TARGET" 'echo ok' >/dev/null 2>&1 \
-  || { echo "ERR: 无法免密 ssh 到 $SSH_TARGET，先配置 ssh key" >&2; exit 1; }
+  || { echo "ERR: 无法免密 ssh 到 ${SSH_TARGET}，先配置 ssh key" >&2; exit 1; }
 
 # ---------- 1. 打包镜像 ----------
 TMP="$(mktemp -d)"

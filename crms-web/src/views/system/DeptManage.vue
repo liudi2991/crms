@@ -43,7 +43,8 @@
                 <el-tree-select
                   v-model="form.parentId"
                   :data="treeWithRoot"
-                  :props="{ label: 'name', value: 'id', children: 'children' }"
+                  node-key="id"
+                  :props="{ label: 'name', children: 'children' }"
                   check-strictly
                   placeholder="选择父部门"
                   style="width: 100%"
@@ -78,7 +79,8 @@
           <el-tree-select
             v-model="createForm.parentId"
             :data="treeWithRoot"
-            :props="{ label: 'name', value: 'id', children: 'children' }"
+            node-key="id"
+            :props="{ label: 'name', children: 'children' }"
             check-strictly
             placeholder="选择父部门"
             style="width: 100%"

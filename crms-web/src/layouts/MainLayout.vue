@@ -110,7 +110,11 @@ const activeMenu = computed(() => {
   return '/' + segs[0]
 })
 
-const breadcrumbs = computed(() => route.matched.map((m) => m.meta?.title).filter(Boolean))
+const breadcrumbs = computed<string[]>(() =>
+  route.matched
+    .map((m) => m.meta?.title)
+    .filter((t): t is string => typeof t === 'string' && t.length > 0)
+)
 
 const userInitials = computed(() => {
   const n = auth.user?.realName || auth.user?.username || 'U'

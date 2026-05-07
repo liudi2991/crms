@@ -1,13 +1,14 @@
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
-# 时区
-RUN apk add --no-cache tzdata && \
+# 时区 + wget（healthcheck 用）
+RUN apt-get update && apt-get install -y --no-install-recommends tzdata wget && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-    echo "Asia/Shanghai" > /etc/timezone
+    echo "Asia/Shanghai" > /etc/timezone && \
+    rm -rf /var/lib/apt/lists/*
 
 # 非 root 用户
-RUN addgroup -S crms && adduser -S -G crms crms
+RUN groupadd -r crms && useradd -r -g crms crms
 USER crms
 
 # 应用 jar

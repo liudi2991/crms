@@ -27,7 +27,7 @@ if [ -z "$TAG" ]; then
   TAG="$(git describe --tags --always --dirty 2>/dev/null || date +%Y%m%d-%H%M)"
 fi
 
-echo "==> CRMS build  TAG=$TAG  ROOT=$ROOT"
+echo "==> CRMS build  TAG=${TAG}  ROOT=${ROOT}"
 
 # ---------- 0. 前置检查 ----------
 command -v docker >/dev/null || { echo "ERR: docker 未安装" >&2; exit 1; }
@@ -39,17 +39,20 @@ cd "$ROOT/crms-app"
 ./mvnw -B -q $SKIP_TESTS clean package
 JAR="$(ls target/*.jar | grep -v 'sources\|javadoc' | head -1)"
 [ -f "$JAR" ] || { echo "ERR: 找不到 jar"; exit 1; }
-cp "$JAR" target/crms-app.jar
+# pom.xml 若已设 finalName=crms-app，jar 本身就是 target/crms-app.jar，不必再 cp
+if [ "$(basename "$JAR")" != "crms-app.jar" ]; then
+  cp -f "$JAR" target/crms-app.jar
+fi
 echo "    jar = $JAR"
 
 # ---------- 2. 后端镜像 ----------
-echo "==> [2/4] 构建 crms-app:$TAG"
-docker build -t "crms-app:$TAG" -t "crms-app:current" "$ROOT/crms-app"
+echo "==> [2/4] 构建 crms-app:${TAG}"
+docker build -t "crms-app:${TAG}" -t "crms-app:current" "$ROOT/crms-app"
 
 # ---------- 3. 前端打包 + 镜像 ----------
-echo "==> [3/4] 构建 crms-web:$TAG（多阶段：node 构建 + nginx）"
+echo "==> [3/4] 构建 crms-web:${TAG}（多阶段：node 构建 + nginx）"
 cd "$ROOT/crms-web"
-docker build -t "crms-web:$TAG" -t "crms-web:current" "$ROOT/crms-web"
+docker build -t "crms-web:${TAG}" -t "crms-web:current" "$ROOT/crms-web"
 
 # ---------- 4. previous 标签维护 ----------
 # current 升级前的镜像保留为 previous，回滚用
@@ -69,5 +72,5 @@ docker images --format 'table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedSi
 
 echo
 echo "==> 下一步："
-echo "  本地试跑：    cd deploy && IMAGE_TAG=$TAG docker compose -f docker-compose.single.yml up -d"
-echo "  推到服务器：  ./scripts/deploy-remote.sh $TAG <user>@<host>"
+echo "  本地试跑：    cd deploy && IMAGE_TAG=${TAG} docker compose -f docker-compose.single.yml up -d"
+echo "  推到服务器：  ./scripts/deploy-remote.sh ${TAG} <user>@<host>"

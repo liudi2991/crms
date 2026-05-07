@@ -59,10 +59,20 @@
             </el-statistic>
           </el-col>
           <el-col :span="6">
-            <el-statistic title="签订日期" :value="contract.signedAt || '-'" />
+            <div class="el-statistic">
+              <div class="el-statistic__head">签订日期</div>
+              <div class="el-statistic__content">
+                <span class="el-statistic__number">{{ contract.signedAt || '-' }}</span>
+              </div>
+            </div>
           </el-col>
           <el-col :span="6">
-            <el-statistic title="履约结束" :value="contract.performEndAt || '-'" />
+            <div class="el-statistic">
+              <div class="el-statistic__head">履约结束</div>
+              <div class="el-statistic__content">
+                <span class="el-statistic__number">{{ contract.performEndAt || '-' }}</span>
+              </div>
+            </div>
           </el-col>
           <el-col :span="6">
             <el-statistic title="剩余天数" :value="daysLeft">

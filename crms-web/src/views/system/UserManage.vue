@@ -15,7 +15,8 @@
           <el-tree-select
             v-model="query.deptId"
             :data="deptTree"
-            :props="{ label: 'name', value: 'id', children: 'children' }"
+            node-key="id"
+            :props="{ label: 'name', children: 'children' }"
             check-strictly
             clearable
             placeholder="全部部门"
@@ -143,7 +144,8 @@
           <el-tree-select
             v-model="form.deptId"
             :data="deptTree"
-            :props="{ label: 'name', value: 'id', children: 'children' }"
+            node-key="id"
+            :props="{ label: 'name', children: 'children' }"
             placeholder="选择部门"
             style="width: 100%"
           />

@@ -7,7 +7,7 @@
             <h2 style="margin: 0">{{ customer.name }}</h2>
             <span class="text-muted">{{ customer.code }}</span>
             <el-tag size="small" type="info" style="margin-left: 8px">
-              {{ CustomerType[customer.type] }}
+              {{ CustomerType[customer.type as keyof typeof CustomerType] || customer.type }}
             </el-tag>
             <el-tag size="small" style="margin-left: 4px">{{ customer.level }}</el-tag>
             <el-tag

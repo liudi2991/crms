@@ -40,7 +40,7 @@
         </el-table-column>
         <el-table-column label="类型" width="100">
           <template #default="{ row }">
-            {{ ContractCustomerType[row.type] || row.type }}
+            {{ ContractCustomerType[row.type as keyof typeof ContractCustomerType] || row.type }}
           </template>
         </el-table-column>
         <el-table-column prop="level" label="等级" width="80" align="center" />
