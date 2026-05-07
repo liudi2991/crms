@@ -81,11 +81,20 @@ scp -q "$TMP/crms-web-$TAG.tgz"  "$SSH_TARGET:$REMOTE_DIR/images/"
 
 # 配置文件（每次部署都同步，覆盖更新）
 scp -q deploy/docker-compose.single.yml \
-       deploy/.env \
        deploy/SECURITY.md \
        "$SSH_TARGET:$REMOTE_DIR/deploy/"
 scp -qr deploy/scripts/. "$SSH_TARGET:$REMOTE_DIR/scripts/"
 scp -qr deploy/nginx/.   "$SSH_TARGET:$REMOTE_DIR/deploy/nginx/" 2>/dev/null || true
+
+# .env 单独处理：远端已有就不覆盖（保护生产强密钥不被本机弱密钥覆盖）
+if ssh "${SSH_TARGET}" "[ -f '${REMOTE_DIR}/deploy/.env' ]"; then
+  echo "    [keep] 远端已有 .env，保留不覆盖（生产强密钥）"
+else
+  echo "    [first] 远端无 .env，推送 .env.example 模板，请 ssh 进去手工填真值后再次运行本脚本"
+  scp -q deploy/.env.example "${SSH_TARGET}:${REMOTE_DIR}/deploy/.env"
+  echo "    ⚠️  下一步：ssh ${SSH_TARGET} 'vi ${REMOTE_DIR}/deploy/.env'  填强密钥后重跑"
+  exit 0
+fi
 
 # ---------- 4. 远端 load + 切版本 ----------
 echo "==> [4/6] 远端加载镜像、切换 current/previous 标签"
