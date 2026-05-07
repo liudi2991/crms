@@ -1,8 +1,15 @@
 # 合同回款管理系统（CRMS）
 
-> 公司内部合同与回款管理一体化平台。
+[![License](https://img.shields.io/github/license/liudi2991/crms)](./LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/liudi2991/crms)](https://github.com/liudi2991/crms/commits/main)
+[![Stars](https://img.shields.io/github/stars/liudi2991/crms?style=social)](https://github.com/liudi2991/crms)
+[![Java](https://img.shields.io/badge/Java-17-007396?logo=openjdk&logoColor=white)](https://openjdk.org/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-6DB33F?logo=spring-boot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Vue](https://img.shields.io/badge/Vue-3-4FC08D?logo=vue.js&logoColor=white)](https://vuejs.org/)
+
+> 合同与回款全流程管理一体化平台：客户档案 → 合同状态机 → 回款计划 → 自动核销 → 账龄分析 → 看板报表。
 >
-> 当前版本：**v1.0.0-scaffold**（脚手架 + 公共能力 + 关键模块参考实现）。
+> 当前版本：**v1.0.0**（首个可交付版本，覆盖 SRS V1.1 全部 152 个任务）。详见 [CHANGELOG](./CHANGELOG.md)。
 
 ## 项目概览
 
