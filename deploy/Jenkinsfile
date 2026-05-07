@@ -1,0 +1,162 @@
+// CRMS Jenkins 流水线（DSS §10.4）
+// 多分支流水线，按分支策略选择部署目标。
+
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    ansiColor('xterm')
+    buildDiscarder(logRotator(numToKeepStr: '30'))
+    disableConcurrentBuilds()
+  }
+
+  environment {
+    REGISTRY  = 'registry.internal/crms'
+    APP_IMG   = 'crms-app'
+    WEB_IMG   = 'crms-web'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+
+    stage('Lint') {
+      parallel {
+        stage('Backend Checkstyle') {
+          agent { docker { image 'maven:3.9-eclipse-temurin-17' reuseNode true } }
+          steps {
+            dir('crms-app') { sh 'mvn -B checkstyle:check || true' }
+          }
+        }
+        stage('Frontend ESLint') {
+          agent { docker { image 'node:20-alpine' reuseNode true } }
+          steps {
+            dir('crms-web') {
+              sh 'corepack enable && corepack prepare pnpm@9 --activate'
+              sh 'pnpm install --frozen-lockfile || pnpm install'
+              sh 'pnpm lint || true'
+            }
+          }
+        }
+      }
+    }
+
+    stage('Test') {
+      parallel {
+        stage('Backend JUnit') {
+          agent { docker { image 'maven:3.9-eclipse-temurin-17' reuseNode true } }
+          steps {
+            dir('crms-app') { sh 'mvn -B test' }
+          }
+          post {
+            always {
+              junit testResults: 'crms-app/target/surefire-reports/*.xml', allowEmptyResults: true
+            }
+          }
+        }
+        stage('Frontend Vitest') {
+          agent { docker { image 'node:20-alpine' reuseNode true } }
+          steps {
+            dir('crms-web') {
+              sh 'pnpm test:run || true'
+            }
+          }
+        }
+      }
+    }
+
+    stage('Build') {
+      parallel {
+        stage('Backend Package') {
+          agent { docker { image 'maven:3.9-eclipse-temurin-17' reuseNode true } }
+          steps {
+            dir('crms-app') { sh 'mvn -B -DskipTests package' }
+          }
+          post { success { archiveArtifacts artifacts: 'crms-app/target/*.jar', fingerprint: true } }
+        }
+        stage('Frontend Build') {
+          agent { docker { image 'node:20-alpine' reuseNode true } }
+          steps {
+            dir('crms-web') { sh 'pnpm build' }
+          }
+        }
+      }
+    }
+
+    stage('Docker Build & Push') {
+      steps {
+        script {
+          def tag = "${env.BRANCH_NAME ?: 'unknown'}-${env.GIT_COMMIT?.take(8) ?: env.BUILD_NUMBER}"
+          sh "docker build -t ${REGISTRY}/${APP_IMG}:${tag} crms-app/"
+          sh "docker build -t ${REGISTRY}/${WEB_IMG}:${tag} crms-web/"
+          withCredentials([usernamePassword(credentialsId: 'docker-registry', usernameVariable: 'U', passwordVariable: 'P')]) {
+            sh "echo $P | docker login ${REGISTRY} -u $U --password-stdin"
+            sh "docker push ${REGISTRY}/${APP_IMG}:${tag}"
+            sh "docker push ${REGISTRY}/${WEB_IMG}:${tag}"
+          }
+          env.IMAGE_TAG = tag
+        }
+      }
+    }
+
+    stage('Deploy Test') {
+      when { branch 'develop' }
+      steps {
+        sshagent(credentials: ['ssh-test']) {
+          sh """
+            ssh -o StrictHostKeyChecking=no deploy@test-host '
+              cd /opt/crms && \
+              IMAGE_TAG=${env.IMAGE_TAG} docker compose -f docker-compose.test.yml pull && \
+              IMAGE_TAG=${env.IMAGE_TAG} docker compose -f docker-compose.test.yml up -d
+            '
+          """
+        }
+      }
+    }
+
+    stage('Deploy Prod') {
+      when { buildingTag() }
+      steps {
+        input message: "确认部署 ${env.TAG_NAME} 到生产环境？", ok: '部署'
+        sshagent(credentials: ['ssh-prod']) {
+          sh """
+            ssh -o StrictHostKeyChecking=no deploy@prod-host '
+              cd /opt/crms && \
+              IMAGE_TAG=${env.IMAGE_TAG} docker compose -f docker-compose.prod.yml pull && \
+              IMAGE_TAG=${env.IMAGE_TAG} docker compose -f docker-compose.prod.yml up -d
+            '
+          """
+        }
+      }
+    }
+
+    stage('Smoke Test') {
+      when { anyOf { branch 'develop'; buildingTag() } }
+      steps {
+        sh '''
+          set -e
+          for i in 1 2 3 4 5; do
+            if curl -fsS http://${DEPLOY_HOST:-localhost}/actuator/health | grep -q '"status":"UP"'; then
+              echo "Health OK"; exit 0
+            fi
+            sleep 5
+          done
+          echo "Health check failed"; exit 1
+        '''
+      }
+    }
+  }
+
+  post {
+    failure {
+      mail to: 'crms-dev@company.com',
+           subject: "[CRMS] ${env.JOB_NAME} #${env.BUILD_NUMBER} 失败",
+           body: "查看构建详情：${env.BUILD_URL}"
+    }
+    success {
+      echo "Build OK: ${env.IMAGE_TAG ?: 'no-image'}"
+    }
+  }
+}

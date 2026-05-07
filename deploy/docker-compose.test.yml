@@ -1,0 +1,96 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: crms-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: crms
+      MYSQL_USER: crms
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-crms}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --slow_query_log=ON
+      - --long_query_time=1
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: crms-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "60", "1000", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: crms-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./data/minio:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  crms-app:
+    image: crms-app:${IMAGE_TAG:-1.0.0}
+    container_name: crms-app
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      MYSQL_HOST: mysql
+      MYSQL_USERNAME: crms
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-crms}
+      REDIS_HOST: redis
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_BUCKET: crms
+      CRMS_AES_KEY: ${CRMS_AES_KEY:-0123456789abcdef0123456789abcdef}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs/app:/app/logs
+
+  crms-web:
+    image: crms-web:${IMAGE_TAG:-1.0.0}
+    container_name: crms-web
+    restart: unless-stopped
+    depends_on:
+      - crms-app
+    ports:
+      - "80:80"

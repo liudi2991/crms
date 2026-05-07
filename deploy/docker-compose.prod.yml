@@ -1,0 +1,52 @@
+# 生产环境编排（DSS §10.3）。
+# 所有敏感参数通过 .env 与环境变量注入，镜像本身不含密钥。
+
+x-app-base: &app-base
+  image: ${REGISTRY}/crms-app:${IMAGE_TAG}
+  restart: always
+  environment:
+    SPRING_PROFILES_ACTIVE: prod
+    MYSQL_HOST: ${MYSQL_HOST}
+    MYSQL_PORT: ${MYSQL_PORT}
+    MYSQL_DATABASE: ${MYSQL_DATABASE}
+    MYSQL_USERNAME: ${MYSQL_USERNAME}
+    MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    REDIS_HOST: ${REDIS_HOST}
+    REDIS_PORT: ${REDIS_PORT}
+    REDIS_PASSWORD: ${REDIS_PASSWORD}
+    MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+    MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+    MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+    MINIO_BUCKET: ${MINIO_BUCKET}
+    CRMS_AES_KEY: ${CRMS_AES_KEY}
+  volumes:
+    - ./logs:/app/logs
+
+services:
+  app1:
+    <<: *app-base
+    container_name: crms-app1
+    environment:
+      CRMS_NODE_ID: "1"
+
+  app2:
+    <<: *app-base
+    container_name: crms-app2
+    environment:
+      CRMS_NODE_ID: "2"
+
+  nginx:
+    image: nginx:1.25
+    container_name: crms-nginx
+    restart: always
+    depends_on:
+      - app1
+      - app2
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ../crms-web/dist:/usr/share/nginx/html:ro
+      - ./logs/nginx:/var/log/nginx
