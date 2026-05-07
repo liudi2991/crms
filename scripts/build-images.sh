@@ -27,36 +27,30 @@ if [ -z "$TAG" ]; then
   TAG="$(git describe --tags --always --dirty 2>/dev/null || date +%Y%m%d-%H%M)"
 fi
 
-echo "==> CRMS build  TAG=${TAG}  ROOT=${ROOT}"
+# 目标平台（默认 linux/amd64，云主机 99% 是 x86_64；mac M 系列本地试跑可设 PLATFORM=linux/arm64）
+PLATFORM="${PLATFORM:-linux/amd64}"
+
+echo "==> CRMS build  TAG=${TAG}  PLATFORM=${PLATFORM}  ROOT=${ROOT}"
 
 # ---------- 0. 前置检查 ----------
 command -v docker >/dev/null || { echo "ERR: docker 未安装" >&2; exit 1; }
 docker info >/dev/null 2>&1 || { echo "ERR: docker daemon 未启动" >&2; exit 1; }
+# buildx 跨架构需要 binfmt 支持（Docker Desktop 默认开启）
+docker buildx version >/dev/null 2>&1 || { echo "ERR: 需要 docker buildx" >&2; exit 1; }
 
-# ---------- 1. 后端打包 ----------
-echo "==> [1/4] 打包后端 jar"
-cd "$ROOT/crms-app"
-./mvnw -B -q $SKIP_TESTS clean package
-JAR="$(ls target/*.jar | grep -v 'sources\|javadoc' | head -1)"
-[ -f "$JAR" ] || { echo "ERR: 找不到 jar"; exit 1; }
-# pom.xml 若已设 finalName=crms-app，jar 本身就是 target/crms-app.jar，不必再 cp
-if [ "$(basename "$JAR")" != "crms-app.jar" ]; then
-  cp -f "$JAR" target/crms-app.jar
-fi
-echo "    jar = $JAR"
+# ---------- 1+2. 后端镜像（多阶段构建：maven build + jre run，不需要宿主机有 JDK） ----------
+echo "==> [1/3] 构建 crms-app:${TAG}  (${PLATFORM})  含 maven 编译 + 打 jar + 拷进 jre"
+docker buildx build --platform "${PLATFORM}" --load \
+  -t "crms-app:${TAG}" -t "crms-app:current" "$ROOT/crms-app"
 
-# ---------- 2. 后端镜像 ----------
-echo "==> [2/4] 构建 crms-app:${TAG}"
-docker build -t "crms-app:${TAG}" -t "crms-app:current" "$ROOT/crms-app"
+# ---------- 2. 前端镜像（多阶段：node 构建 + nginx） ----------
+echo "==> [2/3] 构建 crms-web:${TAG}  (${PLATFORM}, 多阶段：node 构建 + nginx)"
+docker buildx build --platform "${PLATFORM}" --load \
+  -t "crms-web:${TAG}" -t "crms-web:current" "$ROOT/crms-web"
 
-# ---------- 3. 前端打包 + 镜像 ----------
-echo "==> [3/4] 构建 crms-web:${TAG}（多阶段：node 构建 + nginx）"
-cd "$ROOT/crms-web"
-docker build -t "crms-web:${TAG}" -t "crms-web:current" "$ROOT/crms-web"
-
-# ---------- 4. previous 标签维护 ----------
+# ---------- 3. previous 标签维护 ----------
 # current 升级前的镜像保留为 previous，回滚用
-echo "==> [4/4] 维护 previous 标签"
+echo "==> [3/3] 维护 previous 标签"
 for img in crms-app crms-web; do
   prev_id="$(docker images --format '{{.ID}}' "$img:current" | tail -n +2 | head -1 || true)"
   cur_id="$(docker images --format '{{.ID}}' "$img:current" | head -1 || true)"

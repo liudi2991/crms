@@ -25,10 +25,43 @@ fi
 
 echo "==> [1/6] 装 Docker（如未装）"
 if ! command -v docker >/dev/null; then
-  curl -fsSL https://get.docker.com | sh
+  # 国内云主机连 get.docker.com 经常被重置，优先 5 秒探测，失败回退到阿里云 docker mirror
+  if curl -fsSL --connect-timeout 5 -o /tmp/get-docker.sh https://get.docker.com 2>/dev/null; then
+    echo "    走 get.docker.com（境外）"
+    sh /tmp/get-docker.sh
+  else
+    echo "    [info] get.docker.com 连不上（大陆云主机典型），改用阿里云 docker-ce mirror"
+    apt-get update -y
+    apt-get install -y ca-certificates curl gnupg lsb-release
+    install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg \
+      | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    chmod a+r /etc/apt/keyrings/docker.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable" \
+      > /etc/apt/sources.list.d/docker.list
+    apt-get update -y
+    apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  fi
   systemctl enable --now docker
 else
   echo "    docker 已在  $(docker --version)"
+fi
+
+# 顺便给 docker daemon 配镜像加速器（避免 docker pull mysql:8.0 也走 docker.io 直连）
+if [ ! -f /etc/docker/daemon.json ]; then
+  mkdir -p /etc/docker
+  cat > /etc/docker/daemon.json <<'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.m.daocloud.io",
+    "https://dockerhub.icu",
+    "https://docker.1panel.live"
+  ],
+  "log-driver": "json-file",
+  "log-opts": { "max-size": "20m", "max-file": "5" }
+}
+EOF
+  systemctl restart docker
 fi
 
 if ! docker compose version >/dev/null 2>&1; then
