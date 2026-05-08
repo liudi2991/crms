@@ -37,10 +37,10 @@
 
         <el-row :gutter="16" class="stat-row">
           <el-col :span="6">
-            <el-statistic title="合同数量" :value="agg?.totalContracts ?? 0" />
+            <el-statistic title="合同数量" :value="Number(agg?.totalContracts ?? 0)" />
           </el-col>
           <el-col :span="6">
-            <el-statistic title="合同总金额" :value="agg?.totalContractAmount ?? 0">
+            <el-statistic title="合同总金额" :value="Number(agg?.totalContractAmount ?? 0)">
               <template #suffix>元</template>
             </el-statistic>
           </el-col>
@@ -108,7 +108,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onActivated, onDeactivated, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { customerApi, type CustomerAggregateVO, type CustomerVO } from '@/api/customer'
@@ -122,10 +122,14 @@ const router = useRouter()
 // Vue Router 对同名路由（/customers/A → /customers/B）默认复用组件实例，
 // 这里用 computed 让 id 跟随路由变化，并通过 watch 触发重新加载。
 // 使用 string 形态：Snowflake ID 超出 JS 安全整数范围，禁止 Number() 强转。
-// 注意：router.back() 卸载组件时 route.params.id 会是 undefined，
-//       直接 String(undefined) 会得到字面量 "undefined" 触发对 /customers/undefined 的请求；
-//       这里只接受纯数字字符串（Snowflake），否则返回空，让 watch 与 loadData 短路。
+// 注意 1：router.back() 卸载组件时 route.params.id 会是 undefined，
+//        直接 String(undefined) 会得到字面量 "undefined"，触发对 /customers/undefined
+//        的请求；这里只接受纯数字字符串（Snowflake），否则返回空让 watch 与 loadData 短路。
+// 注意 2：本组件外层有 <keep-alive>，跳到其他详情页（如 /contracts/:id）时本实例
+//        不会卸载，但 route 是全局响应式 → 此处不加 route.name 守卫的话，watcher 会
+//        拿到别人的 id 去查客户，触发 "客户不存在" toast。
 const id = computed(() => {
+  if (route.name !== 'CustomerDetail') return ''
   const raw = route.params.id
   return typeof raw === 'string' && /^\d+$/.test(raw) ? raw : ''
 })
@@ -154,6 +158,18 @@ async function loadData() {
   }
 }
 
+// keep-alive 缓存页面：仅在 active 时监听路由变化，否则会用别人的
+// id 去查客户而触发 "客户不存在" toast。
+let stopRouteWatch: (() => void) | null = null
+onActivated(() => {
+  loadData()
+  stopRouteWatch = watch(id, () => loadData())
+})
+onDeactivated(() => {
+  stopRouteWatch?.()
+  stopRouteWatch = null
+})
+
 function onEdit() {
   formVisible.value = true
 }
@@ -168,8 +184,6 @@ function onSaved() {
   formVisible.value = false
   loadData()
 }
-
-watch(id, () => loadData(), { immediate: true })
 </script>
 
 <style scoped>
