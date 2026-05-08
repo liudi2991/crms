@@ -72,14 +72,14 @@ export const businessRoutes: RouteRecordRaw[] = [
         name: 'PaymentAging',
         component: () => import('@/views/payment/AgingView.vue'),
         // 账龄接口要求 report:payment，与菜单可见性保持一致
-        meta: { title: '账龄分析', perm: 'report:payment' }
+        meta: { title: '账龄分析', icon: 'PieChart', perm: 'report:payment' }
       },
       {
         path: 'reports',
         name: 'Report',
         component: () => import('@/views/report/ReportView.vue'),
         // 报表中心默认 tab 是月度趋势（report:dashboard），无该权限的角色（如 R01 销售）不展示菜单
-        meta: { title: '报表中心', icon: 'TrendCharts', perm: 'report:dashboard' }
+        meta: { title: '报表中心', icon: 'DataLine', perm: 'report:dashboard' }
       },
       {
         path: 'notifications',
@@ -97,37 +97,37 @@ export const businessRoutes: RouteRecordRaw[] = [
             path: 'users',
             name: 'UserManage',
             component: () => import('@/views/system/UserManage.vue'),
-            meta: { title: '用户管理', perm: 'system:manage' }
+            meta: { title: '用户管理', icon: 'User', perm: 'system:manage' }
           },
           {
             path: 'roles',
             name: 'RoleManage',
             component: () => import('@/views/system/RoleManage.vue'),
-            meta: { title: '角色管理', perm: 'system:manage' }
+            meta: { title: '角色管理', icon: 'UserFilled', perm: 'system:manage' }
           },
           {
             path: 'departments',
             name: 'DeptManage',
             component: () => import('@/views/system/DeptManage.vue'),
-            meta: { title: '部门管理', perm: 'system:manage' }
+            meta: { title: '部门管理', icon: 'OfficeBuilding', perm: 'system:manage' }
           },
           {
             path: 'params',
             name: 'ParamManage',
             component: () => import('@/views/system/ParamManage.vue'),
-            meta: { title: '系统参数', perm: 'system:manage' }
+            meta: { title: '系统参数', icon: 'Tools', perm: 'system:manage' }
           },
           {
             path: 'logs',
             name: 'OperationLog',
             component: () => import('@/views/system/OperationLogView.vue'),
-            meta: { title: '操作日志', perm: 'system:manage' }
+            meta: { title: '操作日志', icon: 'Tickets', perm: 'system:manage' }
           },
           {
             path: 'recycle',
             name: 'RecycleBin',
             component: () => import('@/views/system/RecycleBin.vue'),
-            meta: { title: '回收站', perm: 'system:manage' }
+            meta: { title: '回收站', icon: 'Delete', perm: 'system:manage' }
           }
         ]
       }

@@ -1,35 +1,43 @@
 <template>
   <el-container class="app-layout">
     <el-aside :width="collapsed ? '64px' : '220px'" class="aside">
-      <div class="logo">{{ collapsed ? 'C' : 'CRMS 合同回款' }}</div>
-      <el-menu
-        :default-active="activeMenu"
-        :collapse="collapsed"
-        router
-        background-color="#001529"
-        text-color="#cfd5dc"
-        active-text-color="#fff"
-      >
-        <template v-for="route in menuRoutes" :key="route.path">
-          <el-menu-item v-if="!visibleChildren(route).length" :index="'/' + route.path">
-            <el-icon><component :is="route.meta?.icon || 'Menu'" /></el-icon>
-            <template #title>{{ route.meta?.title }}</template>
-          </el-menu-item>
-          <el-sub-menu v-else :index="'/' + route.path">
-            <template #title>
+      <div class="logo">
+        <el-icon class="logo-mark"><Promotion /></el-icon>
+        <span v-if="!collapsed" class="logo-text">CRMS 合同回款</span>
+      </div>
+      <el-scrollbar class="menu-scroll">
+        <el-menu
+          class="side-menu"
+          :default-active="activeMenu"
+          :collapse="collapsed"
+          :collapse-transition="false"
+          router
+          background-color="#001529"
+          text-color="#cfd5dc"
+          active-text-color="#fff"
+        >
+          <template v-for="route in menuRoutes" :key="route.path">
+            <el-menu-item v-if="!visibleChildren(route).length" :index="'/' + route.path">
               <el-icon><component :is="route.meta?.icon || 'Menu'" /></el-icon>
-              <span>{{ route.meta?.title }}</span>
-            </template>
-            <el-menu-item
-              v-for="child in visibleChildren(route)"
-              :key="child.path"
-              :index="('/' + route.path + '/' + child.path).replace(/\/+/g, '/')"
-            >
-              {{ child.meta?.title }}
+              <template #title>{{ route.meta?.title }}</template>
             </el-menu-item>
-          </el-sub-menu>
-        </template>
-      </el-menu>
+            <el-sub-menu v-else :index="'/' + route.path">
+              <template #title>
+                <el-icon><component :is="route.meta?.icon || 'Menu'" /></el-icon>
+                <span>{{ route.meta?.title }}</span>
+              </template>
+              <el-menu-item
+                v-for="child in visibleChildren(route)"
+                :key="child.path"
+                :index="('/' + route.path + '/' + child.path).replace(/\/+/g, '/')"
+              >
+                <el-icon><component :is="child.meta?.icon || 'Minus'" /></el-icon>
+                <template #title>{{ child.meta?.title }}</template>
+              </el-menu-item>
+            </el-sub-menu>
+          </template>
+        </el-menu>
+      </el-scrollbar>
     </el-aside>
 
     <el-container>
@@ -74,7 +82,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { CaretBottom, Expand, Fold } from '@element-plus/icons-vue'
+import { CaretBottom, Expand, Fold, Promotion } from '@element-plus/icons-vue'
 import { businessRoutes } from '@/router'
 import { useAuthStore } from '@/stores/auth'
 import NotificationBell from '@/components/NotificationBell.vue'
@@ -144,18 +152,122 @@ function onCommand(cmd: string) {
   background: #001529;
   transition: width 0.2s;
   overflow: hidden;
-  :deep(.el-menu) {
-    border-right: none;
-  }
+  display: flex;
+  flex-direction: column;
+
   .logo {
     height: 56px;
-    line-height: 56px;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     color: #fff;
     font-weight: 600;
     background: #002140;
     overflow: hidden;
     white-space: nowrap;
+    flex-shrink: 0;
+
+    .logo-mark {
+      font-size: 22px;
+      color: #4096ff;
+    }
+    .logo-text {
+      font-size: 16px;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  .menu-scroll {
+    flex: 1;
+    /* 隐藏水平滚动条，保持菜单干净 */
+    :deep(.el-scrollbar__view) {
+      height: 100%;
+    }
+  }
+
+  :deep(.side-menu) {
+    border-right: none;
+    background-color: #001529 !important;
+
+    /* 一级菜单项 */
+    .el-menu-item,
+    .el-sub-menu__title {
+      height: 44px;
+      line-height: 44px;
+      margin: 2px 8px;
+      border-radius: 6px;
+      transition: background-color 0.15s, color 0.15s;
+
+      .el-icon {
+        font-size: 16px;
+        margin-right: 8px;
+      }
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.06) !important;
+        color: #fff !important;
+      }
+    }
+
+    /* 一级激活态：实色蓝底 + 加粗文字 */
+    > .el-menu-item.is-active {
+      background-color: #1677ff !important;
+      color: #fff !important;
+      font-weight: 500;
+    }
+
+    /* sub-menu 展开容器：背景比父级深一点（暗主题下显示二级层级感） */
+    .el-sub-menu .el-menu {
+      background-color: #000c17 !important;
+      padding: 4px 0;
+    }
+
+    /* 二级菜单项：相对父级 sub-menu title 多 16px 缩进，
+     * 覆盖 element-plus 默认通过 inline style padding-left 的行为，
+     * 否则窄主题下视觉上会感觉子菜单"没有缩进"或反向偏移。
+     */
+    .el-sub-menu .el-menu-item {
+      height: 38px;
+      line-height: 38px;
+      padding-left: 44px !important;
+      margin: 2px 8px;
+      font-size: 13px;
+
+      .el-icon {
+        font-size: 14px;
+        margin-right: 6px;
+        opacity: 0.85;
+      }
+
+      &.is-active {
+        background-color: #1677ff !important;
+        color: #fff !important;
+        font-weight: 500;
+
+        .el-icon {
+          opacity: 1;
+        }
+      }
+    }
+
+    /* sub-menu title 处于"展开/激活后代"时高亮箭头 */
+    .el-sub-menu.is-active > .el-sub-menu__title {
+      color: #fff !important;
+
+      .el-sub-menu__icon-arrow {
+        color: #fff !important;
+      }
+    }
+
+    /* collapse 折叠时把每项的左右 margin 抹平，避免出现"左缩进 + tooltip 错位" */
+    &.el-menu--collapse {
+      .el-menu-item,
+      .el-sub-menu__title {
+        margin: 2px 0;
+        border-radius: 0;
+      }
+    }
   }
 }
 
