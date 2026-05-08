@@ -150,18 +150,67 @@ async function loadTop() {
   renderTop()
 }
 
+/* 把 ¥124,100 这种金额压缩成 12.4w / 1.2 亿等短形式，
+ * 避免 Y 轴 tick 全是 0,000 0,000 看起来像 bug */
+function formatAxisAmount(v: number): string {
+  if (v === 0) return '0'
+  const abs = Math.abs(v)
+  if (abs >= 1_0000_0000) return (v / 1_0000_0000).toFixed(1).replace(/\.0$/, '') + ' 亿'
+  if (abs >= 10000)        return (v / 10000).toFixed(1).replace(/\.0$/, '') + ' 万'
+  if (abs >= 1000)         return (v / 1000).toFixed(0) + ' k'
+  return String(v)
+}
+
 function renderTrend() {
   if (!trendRef.value) return
   if (!trendChart) trendChart = echarts.init(trendRef.value)
   trendChart.setOption({
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['合同金额', '回款金额'] },
-    grid: { left: 60, right: 30, top: 40, bottom: 30 },
-    xAxis: { type: 'category', data: trend.value.map((p) => p.month) },
-    yAxis: { type: 'value' },
+    color: ['#1677ff', '#52c41a'],
+    tooltip: {
+      trigger: 'axis',
+      valueFormatter: (v: number) => formatCurrency(v)
+    },
+    legend: {
+      data: ['合同金额', '回款金额'],
+      icon: 'roundRect',
+      itemWidth: 14,
+      itemHeight: 8,
+      top: 8,
+      textStyle: { color: '#606266' }
+    },
+    grid: { left: 56, right: 24, top: 44, bottom: 36, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: trend.value.map((p) => p.month),
+      axisLine: { lineStyle: { color: '#e4e7ed' } },
+      axisLabel: { color: '#909399', fontSize: 11 },
+      axisTick: { show: false }
+    },
+    yAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: '#909399', fontSize: 11, formatter: formatAxisAmount },
+      splitLine: { lineStyle: { color: '#f0f2f5' } }
+    },
     series: [
-      { name: '合同金额', type: 'bar', data: trend.value.map((p) => p.contractAmount) },
-      { name: '回款金额', type: 'line', smooth: true, data: trend.value.map((p) => p.paidAmount) }
+      {
+        name: '合同金额',
+        type: 'bar',
+        barMaxWidth: 24,
+        itemStyle: { color: '#1677ff', borderRadius: [4, 4, 0, 0] },
+        data: trend.value.map((p) => p.contractAmount)
+      },
+      {
+        name: '回款金额',
+        type: 'line',
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { width: 2, color: '#52c41a' },
+        itemStyle: { color: '#52c41a' },
+        data: trend.value.map((p) => p.paidAmount)
+      }
     ]
   })
 }
@@ -169,15 +218,49 @@ function renderTrend() {
 function renderAging() {
   if (!agingRef.value) return
   if (!agingChart) agingChart = echarts.init(agingRef.value)
+  /* 与 AgingView / Dashboard 保持同一套色板 */
+  const PIE_COLORS = ['#1677ff', '#52c41a', '#faad14', '#fa8c16', '#f5222d']
+  const total = aging.value.reduce((s, b) => s + Number(b.amount || 0), 0)
   agingChart.setOption({
-    tooltip: { trigger: 'item' },
-    legend: { bottom: 0 },
+    color: PIE_COLORS,
+    tooltip: {
+      trigger: 'item',
+      formatter: (p: { name: string; value: number; percent: number }) =>
+        `${p.name}<br/>金额：${formatCurrency(p.value)} (${p.percent}%)`
+    },
+    legend: { bottom: 0, icon: 'circle', textStyle: { color: '#606266', fontSize: 12 } },
+    graphic: [
+      {
+        type: 'text',
+        left: 'center',
+        top: '38%',
+        style: { text: '应收合计', fill: '#909399', fontSize: 12 }
+      },
+      {
+        type: 'text',
+        left: 'center',
+        top: '46%',
+        style: { text: formatCurrency(total), fill: '#1f2329', fontSize: 18, fontWeight: 600 }
+      }
+    ],
     series: [
       {
         type: 'pie',
-        radius: ['40%', '70%'],
-        data: aging.value.map((b) => ({ name: b.bucket, value: b.amount })),
-        label: { formatter: '{b}: {d}%' }
+        radius: ['52%', '72%'],
+        center: ['50%', '46%'],
+        avoidLabelOverlap: true,
+        label: {
+          show: true,
+          position: 'inside',
+          formatter: (p: { percent: number }) =>
+            p.percent > 3 ? `${p.percent.toFixed(0)}%` : '',
+          color: '#fff',
+          fontSize: 12,
+          fontWeight: 600
+        },
+        labelLine: { show: false },
+        itemStyle: { borderColor: '#fff', borderWidth: 2 },
+        data: aging.value.map((b) => ({ name: b.bucket, value: b.amount }))
       }
     ]
   })
@@ -187,19 +270,49 @@ function renderTop() {
   if (!topRef.value) return
   if (!topChart) topChart = echarts.init(topRef.value)
   topChart.setOption({
-    tooltip: { trigger: 'axis' },
-    grid: { left: 160, right: 30, top: 30, bottom: 30 },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      valueFormatter: (v: number) => formatCurrency(v)
+    },
+    grid: { left: 160, right: 60, top: 20, bottom: 30, containLabel: false },
     yAxis: {
       type: 'category',
       data: top.value.map((t) => t.customerName).reverse(),
-      axisLabel: { width: 140, overflow: 'truncate' }
+      axisLabel: { width: 140, overflow: 'truncate', color: '#606266', fontSize: 12 },
+      axisLine: { show: false },
+      axisTick: { show: false }
     },
-    xAxis: { type: 'value' },
+    xAxis: {
+      type: 'value',
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: '#909399', fontSize: 11, formatter: formatAxisAmount },
+      splitLine: { lineStyle: { color: '#f0f2f5' } }
+    },
     series: [
       {
         type: 'bar',
+        barMaxWidth: 20,
         data: top.value.map((t) => Number(t.amount)).reverse(),
-        itemStyle: { color: '#409EFF' }
+        itemStyle: {
+          color: {
+            type: 'linear',
+            x: 0, y: 0, x2: 1, y2: 0,
+            colorStops: [
+              { offset: 0, color: '#69b1ff' },
+              { offset: 1, color: '#1677ff' }
+            ]
+          },
+          borderRadius: [0, 4, 4, 0]
+        },
+        label: {
+          show: true,
+          position: 'right',
+          color: '#606266',
+          fontSize: 11,
+          formatter: (p: { value: number }) => formatCurrency(p.value)
+        }
       }
     ]
   })
