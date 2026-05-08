@@ -84,14 +84,16 @@
         <el-descriptions :column="2" border size="default" class="mt-2">
           <el-descriptions-item label="客户">
             <el-link type="primary" @click="$router.push(`/customers/${contract.customerId}`)">
-              #{{ contract.customerId }}
+              {{ contract.customerName || `#${contract.customerId}` }}
             </el-link>
           </el-descriptions-item>
-          <el-descriptions-item label="负责人">{{ contract.ownerId }}</el-descriptions-item>
+          <el-descriptions-item label="负责人">{{ contract.ownerName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="所属部门">{{ contract.deptName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="提醒提前">{{ contract.remindDays || '-' }} 天</el-descriptions-item>
           <el-descriptions-item label="履约开始">{{ contract.performStartAt || '-' }}</el-descriptions-item>
           <el-descriptions-item label="履约结束">{{ contract.performEndAt || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="提醒提前">{{ contract.remindDays || '-' }} 天</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ contract.createdAt }}</el-descriptions-item>
+          <el-descriptions-item label="最后更新">{{ contract.updatedAt }}</el-descriptions-item>
           <el-descriptions-item label="备注" :span="2">{{ contract.remark || '-' }}</el-descriptions-item>
         </el-descriptions>
 

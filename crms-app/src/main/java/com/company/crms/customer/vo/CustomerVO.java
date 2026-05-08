@@ -18,6 +18,7 @@ public class CustomerVO {
     private Long ownerId;
     private String ownerName;
     private Long deptId;
+    private String deptName;
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -53,8 +53,8 @@
         </el-row>
 
         <el-descriptions :column="2" border size="default" class="mt-2">
-          <el-descriptions-item label="负责人">{{ customer.ownerName ?? customer.ownerId }}</el-descriptions-item>
-          <el-descriptions-item label="所属部门">{{ customer.deptId }}</el-descriptions-item>
+          <el-descriptions-item label="负责人">{{ customer.ownerName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="所属部门">{{ customer.deptName || '-' }}</el-descriptions-item>
           <el-descriptions-item label="行业">{{ customer.industry || '-' }}</el-descriptions-item>
           <el-descriptions-item label="统一信用代码">{{ customer.uscc || '-' }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ customer.createdAt }}</el-descriptions-item>

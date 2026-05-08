@@ -21,6 +21,7 @@ export interface ContractVO {
   ownerId: string
   ownerName?: string
   deptId: string
+  deptName?: string
   status: string
   remark?: string
   createdAt?: string

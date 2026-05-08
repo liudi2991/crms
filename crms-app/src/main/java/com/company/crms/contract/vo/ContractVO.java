@@ -23,6 +23,7 @@ public class ContractVO implements Serializable {
     private Long ownerId;
     private String ownerName;
     private Long deptId;
+    private String deptName;
     private String status;
     private String remark;
     private LocalDateTime createdAt;

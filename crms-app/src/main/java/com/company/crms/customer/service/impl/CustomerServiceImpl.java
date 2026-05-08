@@ -20,6 +20,10 @@ import com.company.crms.customer.service.CustomerService;
 import com.company.crms.customer.vo.CustomerAggregateVO;
 import com.company.crms.customer.vo.CustomerDuplicateVO;
 import com.company.crms.customer.vo.CustomerVO;
+import com.company.crms.iam.entity.Department;
+import com.company.crms.iam.entity.User;
+import com.company.crms.iam.mapper.DepartmentMapper;
+import com.company.crms.iam.mapper.UserMapper;
 import com.company.crms.system.service.ChangeLogService;
 import com.company.crms.system.service.HardDeleteLogService;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +35,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -44,6 +54,8 @@ public class CustomerServiceImpl implements CustomerService {
     private final HardDeleteLogService hardDeleteLogService;
     private final ChangeLogService changeLogService;
     private final CustomerContactService contactService;
+    private final UserMapper userMapper;
+    private final DepartmentMapper departmentMapper;
 
     @Override
     public PageResult<CustomerVO> page(CustomerQuery query) {
@@ -64,6 +76,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         Page<Customer> result = (Page<Customer>) customerMapper.selectPageWithDataScope(page, wrapper);
         List<CustomerVO> vos = result.getRecords().stream().map(this::toVO).toList();
+        enrichNames(vos);
         return PageResult.of(result, vos);
     }
 
@@ -73,7 +86,9 @@ public class CustomerServiceImpl implements CustomerService {
         if (c == null) {
             throw new BizException(ErrorCode.CU_NOT_FOUND);
         }
-        return toVO(c);
+        CustomerVO vo = toVO(c);
+        enrichNames(List.of(vo));
+        return vo;
     }
 
     @Override
@@ -231,7 +246,9 @@ public class CustomerServiceImpl implements CustomerService {
             throw new BizException(ErrorCode.CU_NOT_FOUND);
         }
         CustomerAggregateVO vo = new CustomerAggregateVO();
-        vo.setCustomer(toVO(c));
+        CustomerVO cvo = toVO(c);
+        enrichNames(List.of(cvo));
+        vo.setCustomer(cvo);
         vo.setContacts(contactService.listByCustomer(id));
         vo.setRecentContracts(customerMapper.recentContracts(id));
         vo.setRecentChanges(changeLogService.listByBiz("CUSTOMER", id, 50));
@@ -253,5 +270,36 @@ public class CustomerServiceImpl implements CustomerService {
         CustomerVO vo = new CustomerVO();
         BeanUtils.copyProperties(c, vo);
         return vo;
+    }
+
+    /**
+     * 批量补 ownerName / deptName，避免 N+1。
+     * 一次 page 列表 (size 默认 20) 最多 2 次额外查询。
+     */
+    private void enrichNames(Collection<CustomerVO> vos) {
+        if (vos == null || vos.isEmpty()) return;
+
+        Set<Long> userIds = vos.stream()
+                .map(CustomerVO::getOwnerId).filter(Objects::nonNull)
+                .collect(Collectors.toCollection(HashSet::new));
+        Set<Long> deptIds = vos.stream()
+                .map(CustomerVO::getDeptId).filter(Objects::nonNull)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        Map<Long, String> userNameById = userIds.isEmpty() ? Map.of()
+                : userMapper.selectBatchIds(userIds).stream()
+                    .collect(Collectors.toMap(User::getId, User::getRealName, (a, b) -> a, HashMap::new));
+        Map<Long, String> deptNameById = deptIds.isEmpty() ? Map.of()
+                : departmentMapper.selectBatchIds(deptIds).stream()
+                    .collect(Collectors.toMap(Department::getId, Department::getName, (a, b) -> a, HashMap::new));
+
+        for (CustomerVO vo : vos) {
+            if (vo.getOwnerId() != null) {
+                vo.setOwnerName(userNameById.getOrDefault(vo.getOwnerId(), null));
+            }
+            if (vo.getDeptId() != null) {
+                vo.setDeptName(deptNameById.getOrDefault(vo.getDeptId(), null));
+            }
+        }
     }
 }

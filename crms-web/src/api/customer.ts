@@ -17,6 +17,7 @@ export interface CustomerVO {
   ownerId: string
   ownerName?: string
   deptId: string
+  deptName?: string
   status: string
   createdAt?: string
   updatedAt?: string
