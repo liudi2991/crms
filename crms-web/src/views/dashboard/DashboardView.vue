@@ -1,6 +1,6 @@
 <template>
   <div class="crms-page">
-    <el-row :gutter="16">
+    <el-row v-if="canDashboard" :gutter="16">
       <el-col v-for="kpi in kpis" :key="kpi.label" :span="6">
         <el-card class="kpi-card" shadow="never">
           <div class="kpi-label">{{ kpi.label }}</div>
@@ -10,14 +10,14 @@
       </el-col>
     </el-row>
 
-    <el-row :gutter="16" class="mt">
-      <el-col :span="16">
+    <el-row v-if="canDashboard || canPaymentReport" :gutter="16" class="mt">
+      <el-col v-if="canDashboard" :span="canPaymentReport ? 16 : 24">
         <el-card class="crms-card" shadow="never">
           <template #header>合同与回款月度趋势（近 12 个月）</template>
           <div ref="trendRef" style="width: 100%; height: 320px"></div>
         </el-card>
       </el-col>
-      <el-col :span="8">
+      <el-col v-if="canPaymentReport" :span="canDashboard ? 8 : 24">
         <el-card class="crms-card" shadow="never">
           <template #header>账龄结构</template>
           <div ref="agingRef" style="width: 100%; height: 320px"></div>
@@ -26,7 +26,7 @@
     </el-row>
 
     <el-row :gutter="16" class="mt">
-      <el-col :span="14">
+      <el-col :span="canPaymentReport ? 14 : 24">
         <el-card class="crms-card" shadow="never">
           <template #header>
             <div class="card-head">
@@ -59,7 +59,7 @@
           </el-table>
         </el-card>
       </el-col>
-      <el-col :span="10">
+      <el-col v-if="canPaymentReport" :span="10">
         <el-card class="crms-card" shadow="never">
           <template #header>
             <div class="card-head">
@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, onMounted, onUnmounted, ref, shallowRef } from 'vue'
+import { computed, markRaw, nextTick, onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import * as echarts from 'echarts/core'
 import { LineChart, PieChart } from 'echarts/charts'
 import {
@@ -110,6 +110,11 @@ import {
   type TrendPoint
 } from '@/api/report'
 import { formatCurrency, formatNumber } from '@/utils/format'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
+const canDashboard = computed(() => auth.hasPermission('report:dashboard'))
+const canPaymentReport = computed(() => auth.hasPermission('report:payment'))
 
 echarts.use([
   LineChart,
@@ -145,19 +150,25 @@ const kpis = computed(() => {
 })
 
 async function loadData() {
-  const [d, t, a, td] = await Promise.all([
-    reportApi.dashboard(),
-    reportApi.trend(12),
-    reportApi.aging(),
-    reportApi.myTodos().catch(() => [])
-  ])
-  dashboard.value = d
-  trend.value = t
-  aging.value = a
-  todos.value = td
-  renderTrend()
-  renderAging()
-  loadTop()
+  const tasks: Array<Promise<unknown>> = []
+  // 看板分区按权限点条件加载，避免 R01 销售这种没有 report:dashboard 权限的角色
+  // 一登录就 403 → axios 拦截器弹「权限不足」toast
+  if (canDashboard.value) {
+    tasks.push(reportApi.dashboard().then((d) => (dashboard.value = d)))
+    tasks.push(reportApi.trend(12).then((t) => (trend.value = t)))
+  }
+  if (canPaymentReport.value) {
+    tasks.push(reportApi.aging().then((a) => (aging.value = a)))
+  }
+  tasks.push(reportApi.myTodos().catch(() => []).then((td) => (todos.value = td as TodoItemVO[])))
+  await Promise.all(tasks)
+  // 等 v-if 控制的 dom 渲染出来再 init echarts
+  await nextTick()
+  if (canDashboard.value) renderTrend()
+  if (canPaymentReport.value) {
+    renderAging()
+    loadTop()
+  }
 }
 
 const todos = ref<TodoItemVO[]>([])
