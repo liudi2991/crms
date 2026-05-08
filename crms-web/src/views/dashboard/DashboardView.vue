@@ -1,11 +1,33 @@
 <template>
   <div class="crms-page">
+    <!-- 金额型 KPI：4 张主指标，第一行整齐铺满 24 列（每张 span=6） -->
     <el-row v-if="canDashboard" :gutter="16">
-      <el-col v-for="kpi in kpis" :key="kpi.label" :span="6">
-        <el-card class="kpi-card" shadow="never">
-          <div class="kpi-label">{{ kpi.label }}</div>
-          <div class="kpi-value">{{ kpi.value }}</div>
-          <div v-if="kpi.hint" class="kpi-hint">{{ kpi.hint }}</div>
+      <el-col v-for="kpi in moneyKpis" :key="kpi.label" :span="6">
+        <el-card class="kpi-card" :class="`tone-${kpi.tone}`" shadow="never">
+          <div class="kpi-head">
+            <span class="kpi-label">{{ kpi.label }}</span>
+            <div class="kpi-icon">
+              <el-icon><component :is="kpi.icon" /></el-icon>
+            </div>
+          </div>
+          <div class="kpi-value" :title="kpi.value">{{ kpi.value }}</div>
+          <div class="kpi-hint">{{ kpi.hint || '\u00A0' }}</div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 计数型 KPI：3 张次指标,统一弱化处理(灰色徽标),整行均分 24 列(每张 span=8) -->
+    <el-row v-if="canDashboard" :gutter="16" class="mt">
+      <el-col v-for="kpi in countKpis" :key="kpi.label" :span="8">
+        <el-card class="kpi-card kpi-card--mini" shadow="never">
+          <div class="kpi-head">
+            <span class="kpi-label">{{ kpi.label }}</span>
+            <div class="kpi-icon kpi-icon--mini">
+              <el-icon><component :is="kpi.icon" /></el-icon>
+            </div>
+          </div>
+          <div class="kpi-value" :title="kpi.value">{{ kpi.value }}</div>
+          <div class="kpi-hint">{{ kpi.hint || '\u00A0' }}</div>
         </el-card>
       </el-col>
     </el-row>
@@ -138,17 +160,50 @@ const agingRef = ref<HTMLDivElement>()
 const trendChart = shallowRef<echarts.ECharts>()
 const agingChart = shallowRef<echarts.ECharts>()
 
-const kpis = computed(() => {
+/* 金额型 4 个，做强视觉处理（彩色徽标 + 大字号），是看板的视觉锚点 */
+const moneyKpis = computed(() => {
   const d = dashboard.value
   if (!d) return []
   return [
-    { label: '合同总额', value: formatCurrency(d.contractAmount) },
-    { label: '已回款', value: formatCurrency(d.paidAmount), hint: '本月 ' + formatCurrency(d.paidThisMonth) },
-    { label: '待回款', value: formatCurrency(d.unpaidAmount) },
-    { label: '逾期金额', value: formatCurrency(d.overdueAmount), hint: '需重点关注' },
-    { label: '客户数', value: formatNumber(d.customerCount) },
-    { label: '合同数', value: formatNumber(d.contractCount) },
-    { label: '30 天内到期', value: formatNumber(d.contractDueIn30Days), hint: '合同条数' }
+    {
+      label: '合同总额',
+      value: formatCurrency(d.contractAmount),
+      icon: 'Document',
+      tone: 'primary',
+      hint: ''
+    },
+    {
+      label: '已回款',
+      value: formatCurrency(d.paidAmount),
+      icon: 'Select',
+      tone: 'success',
+      hint: '本月 ' + formatCurrency(d.paidThisMonth)
+    },
+    {
+      label: '待回款',
+      value: formatCurrency(d.unpaidAmount),
+      icon: 'Clock',
+      tone: 'warning',
+      hint: ''
+    },
+    {
+      label: '逾期金额',
+      value: formatCurrency(d.overdueAmount),
+      icon: 'Warning',
+      tone: 'danger',
+      hint: '需重点关注'
+    }
+  ]
+})
+
+/* 计数型 3 个，做弱化处理（灰色徽标 + 偏小字号） */
+const countKpis = computed(() => {
+  const d = dashboard.value
+  if (!d) return []
+  return [
+    { label: '客户数',      value: formatNumber(d.customerCount),       icon: 'UserFilled', hint: '' },
+    { label: '合同数',      value: formatNumber(d.contractCount),       icon: 'Tickets',    hint: '' },
+    { label: '30 天内到期', value: formatNumber(d.contractDueIn30Days), icon: 'Calendar',   hint: '合同条数' }
   ]
 })
 
@@ -260,27 +315,113 @@ onUnmounted(() => {
 </script>
 
 <style scoped lang="scss">
+/* KPI 卡片：通过 :deep 控制 el-card 的内边距，
+ * 强制等高 + 三段式（label/value/hint）布局，
+ * hint 即使没有内容也用 &nbsp; 占位，避免卡片高度跳动。 */
 .kpi-card {
-  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  /* 左侧 4px 状态条（与 tone 对应），加强金额卡的视觉权重 */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+  }
+  &.tone-primary::before { background: #1677ff; }
+  &.tone-success::before { background: #52c41a; }
+  &.tone-warning::before { background: #faad14; }
+  &.tone-danger::before  { background: #f5222d; }
+
+  :deep(.el-card__body) {
+    padding: 16px 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .kpi-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
   .kpi-label {
-    color: #909399;
-    font-size: 12px;
+    color: #606266;
+    font-size: 13px;
+    font-weight: 500;
   }
+
+  .kpi-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  &.tone-primary .kpi-icon { background: linear-gradient(135deg, #4096ff, #1677ff); }
+  &.tone-success .kpi-icon { background: linear-gradient(135deg, #73d13d, #389e0d); }
+  &.tone-warning .kpi-icon { background: linear-gradient(135deg, #ffc53d, #d48806); }
+  &.tone-danger  .kpi-icon { background: linear-gradient(135deg, #ff7875, #cf1322); }
+
+  .kpi-icon--mini {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+    background: linear-gradient(135deg, #c0c4cc, #909399);
+  }
+
   .kpi-value {
-    font-size: 22px;
-    font-weight: 600;
-    margin-top: 6px;
-    color: #303133;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2329;
+    line-height: 1.3;
+    letter-spacing: -0.3px;
+    /* 金额单行显示；极长金额（>千万）由 ellipsis 优雅截断，hover 由 title 提示完整值。
+     * tabular-nums 让数字等宽，避免 1 与 8 宽度差导致整列对不齐。 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
   }
+
   .kpi-hint {
-    margin-top: 4px;
+    margin-top: 6px;
     color: #909399;
     font-size: 12px;
+    /* 即便没内容也保留一行高，确保所有卡片等高 */
+    min-height: 18px;
+  }
+
+  /* 计数型卡片（次指标）：数字字号小一点，整体更克制 */
+  &.kpi-card--mini {
+    .kpi-value {
+      font-size: 18px;
+      color: #303133;
+      font-weight: 600;
+    }
   }
 }
+
 .mt {
-  margin-top: 4px;
+  margin-top: 12px;
 }
+
 .card-head {
   display: flex;
   justify-content: space-between;
