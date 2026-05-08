@@ -71,13 +71,15 @@ export const businessRoutes: RouteRecordRaw[] = [
         path: 'payments/aging',
         name: 'PaymentAging',
         component: () => import('@/views/payment/AgingView.vue'),
-        meta: { title: '账龄分析', perm: 'payment:list' }
+        // 账龄接口要求 report:payment，与菜单可见性保持一致
+        meta: { title: '账龄分析', perm: 'report:payment' }
       },
       {
         path: 'reports',
         name: 'Report',
         component: () => import('@/views/report/ReportView.vue'),
-        meta: { title: '报表中心', icon: 'TrendCharts' }
+        // 报表中心默认 tab 是月度趋势（report:dashboard），无该权限的角色（如 R01 销售）不展示菜单
+        meta: { title: '报表中心', icon: 'TrendCharts', perm: 'report:dashboard' }
       },
       {
         path: 'notifications',

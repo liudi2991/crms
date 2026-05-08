@@ -26,7 +26,9 @@ public class AgingController {
     private final AgingService agingService;
 
     @Operation(summary = "账龄桶（UNDUE / 0-30 / 31-60 / 61-90 / 90+）")
-    @SaCheckPermission("report:aging")
+    // 历史脏数据：早期写成 report:aging，但 V1.0.1 seed 里没有这个权限点，导致除 superAdmin
+    // 外的所有角色都拿不到账龄数据。现在统一回 report:payment（同 /reports/aging）。
+    @SaCheckPermission("report:payment")
     @GetMapping
     public Result<List<AgingBucketVO>> aging(
             @RequestParam(required = false)
@@ -35,7 +37,7 @@ public class AgingController {
     }
 
     @Operation(summary = "账龄钻取：列出某桶下的回款计划")
-    @SaCheckPermission("report:aging")
+    @SaCheckPermission("report:payment")
     @GetMapping("/drill")
     public Result<List<AgingDrillVO>> drill(
             @RequestParam String bucket,
