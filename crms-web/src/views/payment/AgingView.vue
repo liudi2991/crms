@@ -104,6 +104,7 @@ const drillLoading = ref(false)
 
 const chartRef = ref<HTMLDivElement>()
 let chart: echarts.ECharts | null = null
+let chartRO: ResizeObserver | null = null
 
 /* 桶严重程度 -> tone 色板（与 KPI 卡片同一套色规则）。
  * 后端 bucket 取值（见 api/payment.ts AgingBucketLabel）：
@@ -158,7 +159,13 @@ function onSelect(bucket: string) {
 
 function renderChart() {
   if (!chartRef.value) return
-  if (!chart) chart = echarts.init(chartRef.value)
+  if (!chart) {
+    chart = echarts.init(chartRef.value)
+    /* 容器尺寸变化（侧栏折叠/路由切换/窗口缩放）时自动 resize，
+     * 避免 echarts 残留 0 宽度状态导致图表"缩在左侧很小" */
+    chartRO = new ResizeObserver(() => chart?.resize())
+    chartRO.observe(chartRef.value)
+  }
   chart.setOption({
     color: PIE_COLORS,
     tooltip: {
@@ -230,6 +237,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  chartRO?.disconnect()
+  chartRO = null
   chart?.dispose()
   chart = null
   window.removeEventListener('resize', onResize)

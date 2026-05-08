@@ -105,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import * as echarts from 'echarts'
 import { Download, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -136,6 +136,30 @@ let trendChart: echarts.ECharts | null = null
 let agingChart: echarts.ECharts | null = null
 let topChart: echarts.ECharts | null = null
 
+/* el-tabs 在非 active pane 上用 display:none → 容器 clientWidth=0，
+ * 此时 echarts.init 会拿到 0 宽度并打 console warning，setOption 也无法正确绘图。
+ * 用 ResizeObserver 监听容器尺寸：首次拿到正常宽度时再 init，之后变化自动 resize。 */
+const observers: ResizeObserver[] = []
+function bindResize(el: HTMLElement, chart: echarts.ECharts) {
+  const ro = new ResizeObserver(() => chart.resize())
+  ro.observe(el)
+  observers.push(ro)
+}
+/** 容器宽度=0 时先挂 RO 等待，避免 init 时打 "Can't get DOM width or height" warning。 */
+function whenSized(el: HTMLElement, cb: () => void) {
+  if (el.clientWidth > 0 && el.clientHeight > 0) {
+    cb()
+    return
+  }
+  const ro = new ResizeObserver(() => {
+    if (el.clientWidth > 0 && el.clientHeight > 0) {
+      ro.disconnect()
+      cb()
+    }
+  })
+  ro.observe(el)
+}
+
 async function loadAll() {
   trend.value = await reportApi.trend(12)
   aging.value = await reportApi.aging()
@@ -163,7 +187,15 @@ function formatAxisAmount(v: number): string {
 
 function renderTrend() {
   if (!trendRef.value) return
-  if (!trendChart) trendChart = echarts.init(trendRef.value)
+  if (!trendChart) {
+    const el = trendRef.value
+    whenSized(el, () => {
+      trendChart = echarts.init(el)
+      bindResize(el, trendChart)
+      renderTrend()
+    })
+    return
+  }
   trendChart.setOption({
     color: ['#1677ff', '#52c41a'],
     tooltip: {
@@ -217,7 +249,15 @@ function renderTrend() {
 
 function renderAging() {
   if (!agingRef.value) return
-  if (!agingChart) agingChart = echarts.init(agingRef.value)
+  if (!agingChart) {
+    const el = agingRef.value
+    whenSized(el, () => {
+      agingChart = echarts.init(el)
+      bindResize(el, agingChart)
+      renderAging()
+    })
+    return
+  }
   /* 与 AgingView / Dashboard 保持同一套色板 */
   const PIE_COLORS = ['#1677ff', '#52c41a', '#faad14', '#fa8c16', '#f5222d']
   const total = aging.value.reduce((s, b) => s + Number(b.amount || 0), 0)
@@ -268,7 +308,15 @@ function renderAging() {
 
 function renderTop() {
   if (!topRef.value) return
-  if (!topChart) topChart = echarts.init(topRef.value)
+  if (!topChart) {
+    const el = topRef.value
+    whenSized(el, () => {
+      topChart = echarts.init(el)
+      bindResize(el, topChart)
+      renderTop()
+    })
+    return
+  }
   topChart.setOption({
     tooltip: {
       trigger: 'axis',
@@ -355,11 +403,21 @@ function onResize() {
 }
 
 watch(tab, () => {
-  setTimeout(() => {
-    if (tab.value === 'trend') renderTrend()
-    else if (tab.value === 'aging') renderAging()
-    else if (tab.value === 'top') renderTop()
-  }, 0)
+  /* 切到一个之前隐藏的 tab，容器从 display:none 变为 block，
+   * 这里用 nextTick 确保 DOM 完成 layout 后再 render，
+   * 否则 echarts.init 会拿到 0 宽度（必须 F12 才能看见图） */
+  nextTick(() => {
+    if (tab.value === 'trend') {
+      renderTrend()
+      trendChart?.resize()
+    } else if (tab.value === 'aging') {
+      renderAging()
+      agingChart?.resize()
+    } else if (tab.value === 'top') {
+      renderTop()
+      topChart?.resize()
+    }
+  })
 })
 
 onMounted(() => {
@@ -368,6 +426,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  observers.forEach((ro) => ro.disconnect())
+  observers.length = 0
   trendChart?.dispose()
   agingChart?.dispose()
   topChart?.dispose()

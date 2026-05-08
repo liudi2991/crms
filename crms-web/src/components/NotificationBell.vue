@@ -10,7 +10,7 @@
     <div class="bell-pop">
       <div class="head">
         <strong>未读通知 {{ count }}</strong>
-        <el-link type="primary" :underline="false" @click="onMarkAll">全部已读</el-link>
+        <el-link type="primary" underline="never" @click="onMarkAll">全部已读</el-link>
       </div>
       <EmptyHint v-if="!items.length" description="暂无未读" />
       <ul v-else class="list">
@@ -21,7 +21,7 @@
         </li>
       </ul>
       <div class="foot">
-        <el-link type="primary" :underline="false" @click="goMore">查看全部 &rarr;</el-link>
+        <el-link type="primary" underline="never" @click="goMore">查看全部 &rarr;</el-link>
       </div>
     </div>
   </el-popover>

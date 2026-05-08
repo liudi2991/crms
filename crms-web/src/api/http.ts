@@ -35,6 +35,31 @@ http.interceptors.request.use((cfg) => {
   return cfg
 })
 
+/**
+ * 后端把 Long 序列化为字符串以防 JS 大整数精度丢失，但 ElPagination 的 total prop
+ * 严格要求 Number，否则会触发 "Invalid prop: type check failed for prop total"
+ * + "[ElPagination] 你使用了一些已被废弃的用法" 警告。
+ *
+ * 这里统一识别分页响应（包含 items + total + page + size 四个字段）并把 total
+ * 转回 number。业务页只要继续用 res.total 就行，不用每个 view 都包 Number()。
+ */
+function normalizePageTotal(data: unknown): unknown {
+  if (
+    data &&
+    typeof data === 'object' &&
+    'items' in data &&
+    'total' in data &&
+    'page' in data &&
+    'size' in data
+  ) {
+    const d = data as { total: unknown }
+    if (typeof d.total === 'string' && d.total !== '') {
+      d.total = Number(d.total)
+    }
+  }
+  return data
+}
+
 http.interceptors.response.use(
   (res) => {
     nprogress.done()
@@ -43,7 +68,7 @@ http.interceptors.response.use(
       return res
     }
     if (body.code === '0') {
-      return body.data as never
+      return normalizePageTotal(body.data) as never
     }
     ElMessage.error(body.message || '请求失败')
     return Promise.reject(body)

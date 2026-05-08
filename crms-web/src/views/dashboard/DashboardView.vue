@@ -160,6 +160,14 @@ const agingRef = ref<HTMLDivElement>()
 const trendChart = shallowRef<echarts.ECharts>()
 const agingChart = shallowRef<echarts.ECharts>()
 
+/* 给图表加 ResizeObserver，应对侧栏折叠/展开、KeepAlive 切回时容器宽度变化 */
+const observers: ResizeObserver[] = []
+function bindResize(el: HTMLElement, chart: echarts.ECharts) {
+  const ro = new ResizeObserver(() => chart.resize())
+  ro.observe(el)
+  observers.push(ro)
+}
+
 /* 金额型 4 个，做强视觉处理（彩色徽标 + 大字号），是看板的视觉锚点 */
 const moneyKpis = computed(() => {
   const d = dashboard.value
@@ -264,6 +272,7 @@ function renderTrend() {
   if (!trendRef.value) return
   if (!trendChart.value) {
     trendChart.value = markRaw(echarts.init(trendRef.value))
+    bindResize(trendRef.value, trendChart.value)
   }
   trendChart.value.setOption({
     color: ['#1677ff', '#52c41a'],
@@ -344,6 +353,7 @@ function renderAging() {
   if (!agingRef.value) return
   if (!agingChart.value) {
     agingChart.value = markRaw(echarts.init(agingRef.value))
+    bindResize(agingRef.value, agingChart.value)
   }
   /* 与 AgingView 保持一致的色板：未到期蓝/0-30 绿/31-60 黄/61-90 橙/90+ 红 */
   const PIE_COLORS = ['#1677ff', '#52c41a', '#faad14', '#fa8c16', '#f5222d']
@@ -405,6 +415,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  observers.forEach((ro) => ro.disconnect())
+  observers.length = 0
   window.removeEventListener('resize', onResize)
   trendChart.value?.dispose()
   agingChart.value?.dispose()
