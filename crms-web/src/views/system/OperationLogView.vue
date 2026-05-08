@@ -1,75 +1,48 @@
 <template>
   <div class="crms-page">
-    <el-card class="crms-card" shadow="never">
-      <el-form inline class="search-bar">
-        <el-form-item label="关键字">
-          <el-input
-            v-model="query.keyword"
-            placeholder="操作人 / 动作 / URI"
-            clearable
-            style="width: 220px"
-            @keyup.enter="onSearch"
-          />
-        </el-form-item>
-        <el-form-item label="模块">
-          <el-select
-            v-model="query.module"
-            placeholder="全部"
-            clearable
-            style="width: 120px"
-            @change="onSearch"
-          >
-            <el-option v-for="m in moduleOptions" :key="m" :label="m" :value="m" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="类型">
-          <el-select
-            v-model="query.opType"
-            placeholder="全部"
-            clearable
-            style="width: 140px"
-            @change="onSearch"
-          >
-            <el-option label="新建" value="CREATE" />
-            <el-option label="更新" value="UPDATE" />
-            <el-option label="软删" value="DELETE" />
-            <el-option label="硬删" value="HARD_DELETE" />
-            <el-option label="登录" value="LOGIN" />
-            <el-option label="导出" value="EXPORT" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="结果">
-          <el-select
-            v-model="query.result"
-            placeholder="全部"
-            clearable
-            style="width: 110px"
-            @change="onSearch"
-          >
-            <el-option label="成功" value="SUCCESS" />
-            <el-option label="失败" value="FAIL" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="时间">
-          <el-date-picker
-            v-model="timeRange"
-            type="datetimerange"
-            range-separator="~"
-            start-placeholder="开始"
-            end-placeholder="结束"
-            value-format="YYYY-MM-DD HH:mm:ss"
-            style="width: 360px"
-            @change="onSearch"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="onSearch">查询</el-button>
-          <el-button :icon="RefreshLeft" @click="onReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+    <div class="crms-filter">
+      <el-input
+        v-model="query.keyword"
+        placeholder="搜索操作人 / 动作 / URI"
+        clearable
+        :prefix-icon="Search"
+        style="width: 240px"
+        @keyup.enter="onSearch"
+      />
+      <el-select v-model="query.module" placeholder="模块" clearable style="width: 120px" @change="onSearch">
+        <el-option v-for="m in moduleOptions" :key="m" :label="m" :value="m" />
+      </el-select>
+      <el-select v-model="query.opType" placeholder="类型" clearable style="width: 130px" @change="onSearch">
+        <el-option label="新建" value="CREATE" />
+        <el-option label="更新" value="UPDATE" />
+        <el-option label="软删" value="DELETE" />
+        <el-option label="硬删" value="HARD_DELETE" />
+        <el-option label="登录" value="LOGIN" />
+        <el-option label="导出" value="EXPORT" />
+      </el-select>
+      <el-select v-model="query.result" placeholder="结果" clearable style="width: 100px" @change="onSearch">
+        <el-option label="成功" value="SUCCESS" />
+        <el-option label="失败" value="FAIL" />
+      </el-select>
+      <el-date-picker
+        v-model="timeRange"
+        type="datetimerange"
+        range-separator="~"
+        start-placeholder="开始"
+        end-placeholder="结束"
+        value-format="YYYY-MM-DD HH:mm:ss"
+        style="width: 340px"
+        @change="onSearch"
+      />
+      <el-button type="primary" :icon="Search" @click="onSearch">查询</el-button>
+      <el-button :icon="RefreshLeft" @click="onReset">重置</el-button>
+    </div>
 
+    <el-card class="crms-card" shadow="never">
       <el-table v-loading="loading" :data="rows" border stripe>
-        <el-table-column prop="createdAt" label="时间" width="170" />
+        <el-table-column label="时间" width="170">
+          <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+        </el-table-column>
         <el-table-column prop="operatorName" label="操作人" width="120" />
         <el-table-column prop="operatorIp" label="IP" width="140" />
         <el-table-column prop="module" label="模块" width="80" />
@@ -121,6 +94,7 @@ import {
   type OperationLogQuery,
   type OperationLogVO
 } from '@/api/system'
+import { formatDateTime } from '@/utils/format'
 
 const query = reactive<OperationLogQuery>({ page: 1, size: 20 })
 const timeRange = ref<[string, string] | null>(null)

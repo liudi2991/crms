@@ -12,10 +12,10 @@
             <el-tag size="small" style="margin-left: 4px">{{ customer.level }}</el-tag>
             <el-tag
               size="small"
-              :type="customer.status === 'ACTIVE' ? 'success' : (customer.status === 'MERGED' ? 'warning' : 'info')"
+              :type="ActiveStatus[customer.status]?.type || 'info'"
               style="margin-left: 4px"
             >
-              {{ statusLabel }}
+              {{ ActiveStatus[customer.status]?.label || statusLabel }}
             </el-tag>
           </div>
           <div>
@@ -27,7 +27,7 @@
               @confirm="onDelete"
             >
               <template #reference>
-                <el-button v-perm="'customer:delete'" type="danger">删除</el-button>
+                <el-button v-perm="'customer:delete'" plain type="danger">删除</el-button>
               </template>
             </el-popconfirm>
           </div>
@@ -57,16 +57,13 @@
           <el-descriptions-item label="所属部门">{{ customer.deptName || '-' }}</el-descriptions-item>
           <el-descriptions-item label="行业">{{ customer.industry || '-' }}</el-descriptions-item>
           <el-descriptions-item label="统一信用代码">{{ customer.uscc || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ customer.createdAt }}</el-descriptions-item>
-          <el-descriptions-item label="最后更新">{{ customer.updatedAt }}</el-descriptions-item>
+          <el-descriptions-item label="创建时间">{{ formatDateTime(customer.createdAt) }}</el-descriptions-item>
+          <el-descriptions-item label="最后更新">{{ formatDateTime(customer.updatedAt) }}</el-descriptions-item>
         </el-descriptions>
 
         <el-tabs v-model="tab" class="mt-2">
           <el-tab-pane label="合同" name="contracts">
-            <el-empty
-              v-if="!agg?.recentContracts.length"
-              description="暂无合同"
-            />
+            <EmptyHint v-if="!agg?.recentContracts.length" description="暂无合同" />
             <el-table v-else :data="agg.recentContracts" border>
               <el-table-column prop="code" label="合同编号" width="160" />
               <el-table-column label="合同名称" min-width="180">
@@ -81,10 +78,14 @@
               </el-table-column>
               <el-table-column label="状态" width="100" align="center">
                 <template #default="{ row }">
-                  <el-tag size="small">{{ row.status }}</el-tag>
+                  <el-tag :type="ContractStatus[row.status]?.type || 'info'" size="small">
+                    {{ ContractStatus[row.status]?.label || row.status }}
+                  </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="signedAt" label="签订日期" width="120" />
+              <el-table-column label="签订日期" width="120">
+                <template #default="{ row }">{{ formatDate(row.signedAt) }}</template>
+              </el-table-column>
             </el-table>
           </el-tab-pane>
 
@@ -112,7 +113,10 @@ import { computed, onActivated, onDeactivated, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { customerApi, type CustomerAggregateVO, type CustomerVO } from '@/api/customer'
-import { CustomerType } from '@/utils/enum'
+import { ContractStatus } from '@/api/contract'
+import { ActiveStatus, CustomerType } from '@/utils/enum'
+import { formatDate, formatDateTime } from '@/utils/format'
+import EmptyHint from '@/components/EmptyHint.vue'
 import CustomerFormDrawer from './components/CustomerFormDrawer.vue'
 import CustomerContactTab from './components/CustomerContactTab.vue'
 import CustomerChangeLogTab from './components/CustomerChangeLogTab.vue'

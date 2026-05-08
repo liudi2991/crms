@@ -1,49 +1,40 @@
 <template>
   <div class="crms-page">
-    <el-card class="crms-card" shadow="never">
-      <el-form inline class="search-bar">
-        <el-form-item label="关键字">
-          <el-input
-            v-model="query.keyword"
-            placeholder="合同名称 / 编号"
-            clearable
-            style="width: 220px"
-            @keyup.enter="onSearch"
-          />
-        </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="query.type" placeholder="全部" clearable style="width: 120px" @change="onSearch">
-            <el-option v-for="(label, key) in ContractType" :key="key" :label="label" :value="key" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 120px" @change="onSearch">
-            <el-option
-              v-for="(meta, key) in ContractStatus"
-              :key="key"
-              :label="meta.label"
-              :value="key"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="签订日期">
-          <el-date-picker
-            v-model="signRange"
-            type="daterange"
-            range-separator="~"
-            start-placeholder="起"
-            end-placeholder="止"
-            value-format="YYYY-MM-DD"
-            style="width: 280px"
-            @change="onSearch"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="onSearch">查询</el-button>
-          <el-button :icon="RefreshLeft" @click="onReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+    <div class="crms-filter">
+      <el-input
+        v-model="query.keyword"
+        placeholder="搜索合同名称 / 编号"
+        clearable
+        :prefix-icon="Search"
+        style="width: 260px"
+        @keyup.enter="onSearch"
+      />
+      <el-select v-model="query.type" placeholder="类型" clearable style="width: 120px" @change="onSearch">
+        <el-option v-for="(label, key) in ContractType" :key="key" :label="label" :value="key" />
+      </el-select>
+      <el-select v-model="query.status" placeholder="状态" clearable style="width: 120px" @change="onSearch">
+        <el-option
+          v-for="(meta, key) in ContractStatus"
+          :key="key"
+          :label="meta.label"
+          :value="key"
+        />
+      </el-select>
+      <el-date-picker
+        v-model="signRange"
+        type="daterange"
+        range-separator="~"
+        start-placeholder="签订起"
+        end-placeholder="签订止"
+        value-format="YYYY-MM-DD"
+        style="width: 260px"
+        @change="onSearch"
+      />
+      <el-button type="primary" :icon="Search" @click="onSearch">查询</el-button>
+      <el-button :icon="RefreshLeft" @click="onReset">重置</el-button>
+    </div>
 
+    <el-card class="crms-card" shadow="never">
       <div class="toolbar">
         <el-button v-perm="'contract:create'" type="primary" :icon="Plus" @click="onCreate">
           新建合同
@@ -71,9 +62,13 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="signedAt" label="签订日期" width="120" />
-        <el-table-column prop="performEndAt" label="履约结束" width="120" />
-        <el-table-column label="操作" fixed="right" width="220" align="center">
+        <el-table-column label="签订日期" width="120">
+          <template #default="{ row }">{{ formatDate(row.signedAt) }}</template>
+        </el-table-column>
+        <el-table-column label="履约结束" width="120">
+          <template #default="{ row }">{{ formatDate(row.performEndAt) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" fixed="right" width="180" align="center">
           <template #default="{ row }">
             <el-button v-perm="'contract:update'" link size="small" @click="onEdit(row)">编辑</el-button>
             <el-button
@@ -92,7 +87,9 @@
               @confirm="onDelete(row)"
             >
               <template #reference>
-                <el-button v-perm="'contract:delete'" link size="small" type="danger">删除</el-button>
+                <el-button v-perm="'contract:delete'" link size="small">
+                  <span class="text-danger">删除</span>
+                </el-button>
               </template>
             </el-popconfirm>
           </template>
@@ -132,6 +129,7 @@ import {
   type ContractQuery,
   type ContractVO
 } from '@/api/contract'
+import { formatDate } from '@/utils/format'
 import ContractFormDrawer from './components/ContractFormDrawer.vue'
 
 const router = useRouter()

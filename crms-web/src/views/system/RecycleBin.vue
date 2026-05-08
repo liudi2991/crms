@@ -22,8 +22,10 @@
       <el-table v-loading="loading" :data="rows" border stripe>
         <el-table-column prop="code" label="编号" width="200" />
         <el-table-column prop="name" label="名称 / 摘要" min-width="240" show-overflow-tooltip />
-        <el-table-column prop="updatedAt" label="删除时间" width="170" />
-        <el-table-column label="操作" fixed="right" width="220" align="center">
+        <el-table-column label="删除时间" width="170">
+          <template #default="{ row }">{{ formatDateTime(row.updatedAt) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" fixed="right" width="200" align="center">
           <template #default="{ row }">
             <el-popconfirm
               :title="`确认还原 ${row.name || row.code}？`"
@@ -33,8 +35,8 @@
                 <el-button link size="small" type="success">还原</el-button>
               </template>
             </el-popconfirm>
-            <el-button v-perm="hardDeletePerm" link size="small" type="danger" @click="onHardDelete(row)">
-              彻底删除
+            <el-button v-perm="hardDeletePerm" link size="small" @click="onHardDelete(row)">
+              <span class="text-danger">彻底删除</span>
             </el-button>
           </template>
         </el-table-column>
@@ -65,6 +67,7 @@ import {
   type RecycleBinQuery,
   type RecycleBizType
 } from '@/api/system'
+import { formatDateTime } from '@/utils/format'
 
 const query = reactive<RecycleBinQuery>({ bizType: 'CUSTOMER', page: 1, size: 20 })
 const rows = ref<RecycleBinItemVO[]>([])

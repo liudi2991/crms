@@ -38,7 +38,9 @@
             @confirm="onDelete(row)"
           >
             <template #reference>
-              <el-button v-perm="'customer:update'" link size="small" type="danger">删除</el-button>
+              <el-button v-perm="'customer:update'" link size="small">
+                <span class="text-danger">删除</span>
+              </el-button>
             </template>
           </el-popconfirm>
         </template>

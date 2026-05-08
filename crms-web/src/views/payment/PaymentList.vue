@@ -82,7 +82,9 @@
                   @confirm="onDeleteRecord(row)"
                 >
                   <template #reference>
-                    <el-button v-perm="'payment:record'" link size="small" type="danger">删除</el-button>
+                    <el-button v-perm="'payment:record'" link size="small">
+                      <span class="text-danger">删除</span>
+                    </el-button>
                   </template>
                 </el-popconfirm>
               </template>
@@ -348,18 +350,31 @@ watch(tab, (v) => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+/* tab 内紧凑筛选条：用 flex 重排 el-form-item，保留原 inline 模式但视觉更紧凑 */
 .search-bar {
-  margin-bottom: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 4px 0 12px;
+  padding: 8px 0;
+
+  :deep(.el-form-item) {
+    margin: 0 !important;
+  }
 }
+
 .toolbar {
   display: flex;
   gap: 8px;
-  margin: 8px 0 12px;
+  margin: 0 0 12px;
 }
+
 .mt-2 {
   margin-top: 12px;
 }
+
 .text-muted {
   color: #909399;
 }

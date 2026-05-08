@@ -44,7 +44,7 @@
               @confirm="onDelete"
             >
               <template #reference>
-                <el-button v-perm="'contract:delete'" type="danger">删除</el-button>
+                <el-button v-perm="'contract:delete'" plain type="danger">删除</el-button>
               </template>
             </el-popconfirm>
           </div>
@@ -62,7 +62,7 @@
             <div class="el-statistic">
               <div class="el-statistic__head">签订日期</div>
               <div class="el-statistic__content">
-                <span class="el-statistic__number">{{ contract.signedAt || '-' }}</span>
+                <span class="el-statistic__number">{{ formatDate(contract.signedAt) }}</span>
               </div>
             </div>
           </el-col>
@@ -70,7 +70,7 @@
             <div class="el-statistic">
               <div class="el-statistic__head">履约结束</div>
               <div class="el-statistic__content">
-                <span class="el-statistic__number">{{ contract.performEndAt || '-' }}</span>
+                <span class="el-statistic__number">{{ formatDate(contract.performEndAt) }}</span>
               </div>
             </div>
           </el-col>
@@ -90,10 +90,10 @@
           <el-descriptions-item label="负责人">{{ contract.ownerName || '-' }}</el-descriptions-item>
           <el-descriptions-item label="所属部门">{{ contract.deptName || '-' }}</el-descriptions-item>
           <el-descriptions-item label="提醒提前">{{ contract.remindDays || '-' }} 天</el-descriptions-item>
-          <el-descriptions-item label="履约开始">{{ contract.performStartAt || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="履约结束">{{ contract.performEndAt || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ contract.createdAt }}</el-descriptions-item>
-          <el-descriptions-item label="最后更新">{{ contract.updatedAt }}</el-descriptions-item>
+          <el-descriptions-item label="履约开始">{{ formatDate(contract.performStartAt) }}</el-descriptions-item>
+          <el-descriptions-item label="履约结束">{{ formatDate(contract.performEndAt) }}</el-descriptions-item>
+          <el-descriptions-item label="创建时间">{{ formatDateTime(contract.createdAt) }}</el-descriptions-item>
+          <el-descriptions-item label="最后更新">{{ formatDateTime(contract.updatedAt) }}</el-descriptions-item>
           <el-descriptions-item label="备注" :span="2">{{ contract.remark || '-' }}</el-descriptions-item>
         </el-descriptions>
 
@@ -134,6 +134,7 @@ import {
   ContractType,
   type ContractVO
 } from '@/api/contract'
+import { formatDate, formatDateTime } from '@/utils/format'
 import ContractFormDrawer from './components/ContractFormDrawer.vue'
 import ContractAttachmentTab from './components/ContractAttachmentTab.vue'
 import ContractNoteTab from './components/ContractNoteTab.vue'

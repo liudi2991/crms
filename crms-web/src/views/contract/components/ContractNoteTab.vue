@@ -15,15 +15,17 @@
       <el-button :icon="Refresh" circle size="small" @click="loadData" />
     </div>
 
-    <el-empty v-if="!rows.length && !loading" description="暂无备注" />
+    <EmptyHint v-if="!rows.length && !loading" description="暂无备注" />
     <div v-else v-loading="loading" class="notes">
       <div v-for="n in rows" :key="n.id" class="note">
         <div class="note-head">
           <span class="author">用户 #{{ n.authorId }}</span>
-          <span class="time">{{ n.createdAt }}</span>
+          <span class="time">{{ formatDateTime(n.createdAt) }}</span>
           <el-popconfirm v-if="canDelete(n)" title="确认删除此备注？" @confirm="onDelete(n)">
             <template #reference>
-              <el-button link size="small" type="danger">删除</el-button>
+              <el-button link size="small">
+                <span class="text-danger">删除</span>
+              </el-button>
             </template>
           </el-popconfirm>
         </div>
@@ -39,6 +41,8 @@ import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { contractApi, type ContractNoteVO } from '@/api/contract'
 import { useAuthStore } from '@/stores/auth'
+import { formatDateTime } from '@/utils/format'
+import EmptyHint from '@/components/EmptyHint.vue'
 
 const props = defineProps<{ contractId: string }>()
 

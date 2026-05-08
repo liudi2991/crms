@@ -39,7 +39,7 @@
               </el-radio-group>
             </div>
           </template>
-          <el-empty v-if="!filteredTodos.length" description="暂无待办" :image-size="60" />
+          <EmptyHint v-if="!filteredTodos.length" description="暂无待办" />
           <el-table v-else :data="filteredTodos" size="small" border>
             <el-table-column label="类型" width="120">
               <template #default="{ row }">
@@ -47,7 +47,9 @@
               </template>
             </el-table-column>
             <el-table-column prop="title" label="项目" min-width="220" show-overflow-tooltip />
-            <el-table-column prop="date" label="日期" width="120" />
+            <el-table-column label="日期" width="120">
+              <template #default="{ row }">{{ formatDate(row.date) }}</template>
+            </el-table-column>
             <el-table-column label="金额" width="140" align="right">
               <template #default="{ row }">{{ formatCurrency(row.amount) }}</template>
             </el-table-column>
@@ -109,8 +111,9 @@ import {
   type TopCustomerVO,
   type TrendPoint
 } from '@/api/report'
-import { formatCurrency, formatNumber } from '@/utils/format'
+import { formatCurrency, formatDate, formatNumber } from '@/utils/format'
 import { useAuthStore } from '@/stores/auth'
+import EmptyHint from '@/components/EmptyHint.vue'
 
 const auth = useAuthStore()
 const canDashboard = computed(() => auth.hasPermission('report:dashboard'))

@@ -16,19 +16,23 @@
       <span class="text-muted">最大 50MB / 单文件，扩展名：pdf doc docx xls xlsx ppt pptx jpg png zip rar txt</span>
     </div>
 
-    <el-empty v-if="!rows.length && !loading" description="暂无附件" />
+    <EmptyHint v-if="!rows.length && !loading" description="暂无附件" />
     <el-table v-else v-loading="loading" :data="rows" border>
       <el-table-column prop="fileName" label="文件名" min-width="280" show-overflow-tooltip />
       <el-table-column label="大小" width="120" align="right">
         <template #default="{ row }">{{ formatSize(row.fileSize) }}</template>
       </el-table-column>
-      <el-table-column prop="uploadedAt" label="上传时间" width="170" />
+      <el-table-column label="上传时间" width="170">
+        <template #default="{ row }">{{ formatDateTime(row.uploadedAt) }}</template>
+      </el-table-column>
       <el-table-column label="操作" width="180" align="center" fixed="right">
         <template #default="{ row }">
           <el-button link size="small" @click="onPreview(row)">预览/下载</el-button>
           <el-popconfirm :title="`确认删除 ${row.fileName}？`" @confirm="onDelete(row)">
             <template #reference>
-              <el-button v-perm="'contract:update'" link size="small" type="danger">删除</el-button>
+              <el-button v-perm="'contract:update'" link size="small">
+                <span class="text-danger">删除</span>
+              </el-button>
             </template>
           </el-popconfirm>
         </template>
@@ -43,6 +47,8 @@ import { ElMessage, type UploadRequestOptions } from 'element-plus'
 import { Refresh, Upload } from '@element-plus/icons-vue'
 import { contractAttachmentApi, type ContractAttachmentVO } from '@/api/contract'
 import { tokenStore } from '@/api/http'
+import { formatDateTime } from '@/utils/format'
+import EmptyHint from '@/components/EmptyHint.vue'
 
 const props = defineProps<{ contractId: string }>()
 

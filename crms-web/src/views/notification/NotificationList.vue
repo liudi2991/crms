@@ -32,7 +32,9 @@
             </el-table-column>
             <el-table-column prop="title" label="标题" min-width="240" show-overflow-tooltip />
             <el-table-column prop="content" label="内容" min-width="320" show-overflow-tooltip />
-            <el-table-column prop="createdAt" label="时间" width="170" />
+            <el-table-column label="时间" width="170">
+              <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+            </el-table-column>
             <el-table-column label="操作" width="180" fixed="right" align="center">
               <template #default="{ row }">
                 <el-button v-if="row.linkUrl" link size="small" @click="onClick(row)">打开</el-button>
@@ -92,6 +94,7 @@ import {
   type NotificationVO,
   type NotificationSettingVO
 } from '@/api/notification'
+import { formatDateTime } from '@/utils/format'
 
 const router = useRouter()
 const tab = ref<'inbox' | 'settings'>('inbox')

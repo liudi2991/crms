@@ -19,7 +19,9 @@
           </template>
         </el-table-column>
         <el-table-column prop="description" label="说明" min-width="240" show-overflow-tooltip />
-        <el-table-column prop="updatedAt" label="最近更新" width="170" />
+        <el-table-column label="最近更新" width="170">
+          <template #default="{ row }">{{ formatDateTime(row.updatedAt) }}</template>
+        </el-table-column>
       </el-table>
     </el-card>
   </div>
@@ -30,6 +32,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Check, Refresh } from '@element-plus/icons-vue'
 import { systemParamApi, type SystemParamVO } from '@/api/system'
+import { formatDateTime } from '@/utils/format'
 
 const rows = ref<(SystemParamVO & { _dirty?: boolean })[]>([])
 const original = ref<Record<string, string>>({})

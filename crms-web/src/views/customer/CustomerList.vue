@@ -1,8 +1,8 @@
 <template>
   <div class="crms-page">
-    <el-card class="crms-card" shadow="never">
-      <CustomerSearchBar v-model:query="query" @search="onSearch" @reset="onReset" />
+    <CustomerSearchBar v-model:query="query" @search="onSearch" @reset="onReset" />
 
+    <el-card class="crms-card" shadow="never">
       <div class="toolbar">
         <div class="left">
           <el-button v-perm="'customer:create'" type="primary" @click="onCreate">
@@ -44,16 +44,18 @@
           </template>
         </el-table-column>
         <el-table-column prop="level" label="等级" width="80" align="center" />
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'ACTIVE' ? 'success' : 'info'">
-              {{ row.status === 'ACTIVE' ? '启用' : '停用' }}
+            <el-tag :type="ActiveStatus[row.status]?.type || 'info'" size="small">
+              {{ ActiveStatus[row.status]?.label || row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="ownerName" label="负责人" width="120" />
-        <el-table-column prop="createdAt" label="创建时间" width="170" />
-        <el-table-column label="操作" fixed="right" width="220" align="center">
+        <el-table-column prop="ownerName" label="负责人" width="100" />
+        <el-table-column label="创建时间" width="160">
+          <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" fixed="right" width="180" align="center">
           <template #default="{ row }">
             <el-button v-perm="'customer:update'" link size="small" @click="onEdit(row)">
               编辑
@@ -72,8 +74,8 @@
               @confirm="onDelete(row)"
             >
               <template #reference>
-                <el-button v-perm="'customer:delete'" link size="small" type="danger">
-                  删除
+                <el-button v-perm="'customer:delete'" link size="small">
+                  <span class="text-danger">删除</span>
                 </el-button>
               </template>
             </el-popconfirm>
@@ -114,7 +116,8 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Connection, Plus, Refresh } from '@element-plus/icons-vue'
 import { customerApi, type CustomerQuery, type CustomerVO } from '@/api/customer'
-import { CustomerType as ContractCustomerType } from '@/utils/enum'
+import { ActiveStatus, CustomerType as ContractCustomerType } from '@/utils/enum'
+import { formatDateTime } from '@/utils/format'
 import CustomerSearchBar from './components/CustomerSearchBar.vue'
 import CustomerFormDrawer from './components/CustomerFormDrawer.vue'
 import CustomerMergeDialog from './components/CustomerMergeDialog.vue'

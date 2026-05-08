@@ -13,10 +13,12 @@
       <el-button :icon="Refresh" circle @click="loadData" />
     </div>
 
-    <el-empty v-if="!loading && !rows.length" description="暂无回款计划，可点击右上角『生成计划』" />
+    <EmptyHint v-if="!loading && !rows.length" description="暂无回款计划，可点击右上角『生成计划』" />
     <el-table v-else v-loading="loading" :data="rows" stripe border>
       <el-table-column prop="periodNo" label="期" width="60" align="center" />
-      <el-table-column prop="planDate" label="计划日期" width="120" />
+      <el-table-column label="计划日期" width="120">
+        <template #default="{ row }">{{ formatDate(row.planDate) }}</template>
+      </el-table-column>
       <el-table-column label="计划金额" width="140" align="right">
         <template #default="{ row }">{{ Number(row.planAmount).toLocaleString() }}</template>
       </el-table-column>
@@ -48,7 +50,9 @@
             @confirm="onDelete(row)"
           >
             <template #reference>
-              <el-button v-perm="'payment:plan'" link size="small" type="danger">删除</el-button>
+              <el-button v-perm="'payment:plan'" link size="small">
+                <span class="text-danger">删除</span>
+              </el-button>
             </template>
           </el-popconfirm>
         </template>
@@ -119,6 +123,8 @@ import {
   PaymentPlanStatus,
   type PaymentPlanVO
 } from '@/api/payment'
+import { formatDate } from '@/utils/format'
+import EmptyHint from '@/components/EmptyHint.vue'
 import PaymentRecordDrawer from '@/views/payment/components/PaymentRecordDrawer.vue'
 
 const props = defineProps<{ contractId: string }>()

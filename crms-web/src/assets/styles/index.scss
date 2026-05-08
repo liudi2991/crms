@@ -60,3 +60,36 @@ a {
   align-items: center;
   gap: 8px;
 }
+
+/* 列表页通用筛选条：横向 flex + 8/12 间距，避免 el-form inline 的换行错位 */
+.crms-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+
+  .el-form-item {
+    margin: 0 !important;
+  }
+  .crms-filter__spacer {
+    flex: 1;
+  }
+}
+
+/* 内容卡片间距复用，避免每个 view 都写一遍 mt-2 */
+.mt {
+  margin-top: 12px;
+}
+.mt-2 {
+  margin-top: 16px;
+}
+
+/* 表格 hover 行高亮加强（element-plus 默认偏淡） */
+.el-table tbody tr:hover > td {
+  background-color: #f0f7ff !important;
+}

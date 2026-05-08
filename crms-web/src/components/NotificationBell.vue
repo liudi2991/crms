@@ -12,12 +12,12 @@
         <strong>未读通知 {{ count }}</strong>
         <el-link type="primary" :underline="false" @click="onMarkAll">全部已读</el-link>
       </div>
-      <el-empty v-if="!items.length" description="暂无未读" :image-size="60" />
+      <EmptyHint v-if="!items.length" description="暂无未读" />
       <ul v-else class="list">
         <li v-for="n in items" :key="n.id" class="item" @click="onClick(n)">
           <div class="title">{{ n.title }}</div>
           <div class="content">{{ n.content }}</div>
-          <div class="time">{{ n.createdAt }}</div>
+          <div class="time">{{ formatDateTime(n.createdAt) }}</div>
         </li>
       </ul>
       <div class="foot">
@@ -32,6 +32,8 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Bell } from '@element-plus/icons-vue'
 import { notificationApi, type NotificationVO } from '@/api/notification'
+import { formatDateTime } from '@/utils/format'
+import EmptyHint from './EmptyHint.vue'
 
 const router = useRouter()
 const count = ref(0)

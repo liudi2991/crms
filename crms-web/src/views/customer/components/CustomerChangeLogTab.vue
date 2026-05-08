@@ -4,12 +4,12 @@
       <span class="text-muted">最近 100 条变更</span>
       <el-button :icon="Refresh" circle size="small" @click="loadData" />
     </div>
-    <el-empty v-if="!loading && !rows.length" description="暂无变更记录" />
+    <EmptyHint v-if="!loading && !rows.length" description="暂无变更记录" />
     <el-timeline v-else>
       <el-timeline-item
         v-for="r in rows"
         :key="r.id"
-        :timestamp="r.operatedAt"
+        :timestamp="formatDateTime(r.operatedAt)"
         placement="top"
         :type="colorOf(r.field)"
       >
@@ -32,6 +32,8 @@
 import { ref, watch } from 'vue'
 import { Refresh, Right } from '@element-plus/icons-vue'
 import { customerApi, type ChangeLogVO } from '@/api/customer'
+import { formatDateTime } from '@/utils/format'
+import EmptyHint from '@/components/EmptyHint.vue'
 
 const props = defineProps<{ customerId: string }>()
 

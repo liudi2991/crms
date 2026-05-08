@@ -40,7 +40,9 @@
               @confirm="onDelete(row)"
             >
               <template #reference>
-                <el-button link size="small" type="danger">删除</el-button>
+                <el-button link size="small">
+                  <span class="text-danger">删除</span>
+                </el-button>
               </template>
             </el-popconfirm>
           </template>
