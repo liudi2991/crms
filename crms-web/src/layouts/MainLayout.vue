@@ -1,7 +1,7 @@
 <template>
   <el-container class="app-layout">
     <el-aside :width="collapsed ? '64px' : '220px'" class="aside">
-      <div class="logo">
+      <div class="logo" :class="{ 'is-collapsed': collapsed }">
         <el-icon class="logo-mark"><Promotion /></el-icon>
         <span v-if="!collapsed" class="logo-text">合同回款管理系统</span>
       </div>
@@ -156,18 +156,29 @@ function onCommand(cmd: string) {
   flex-direction: column;
 
   .logo {
+    /* 高度与顶部 el-header 完全一致（el-header 默认 60px + border-bottom 1px），
+     * 否则侧栏 logo 下沿与主区域 header 下沿不在同一水平线，视觉上很别扭。 */
     height: 60px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 0 12px;
+    /* 默认左对齐：飞机标 X 坐标对齐到下方菜单项 icon 的位置（约 24px），
+     * 让 logo 与菜单内容形成同一条左基准线，比"居中 logo + 左对齐菜单"自然得多。 */
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0 24px;
     color: #fff;
     font-weight: 600;
     background: #002140;
     overflow: hidden;
     white-space: nowrap;
     flex-shrink: 0;
+
+    /* 折叠态：只剩飞机标，回归水平居中 */
+    &.is-collapsed {
+      justify-content: center;
+      padding: 0;
+    }
 
     .logo-mark {
       font-size: 22px;
@@ -228,11 +239,14 @@ function onCommand(cmd: string) {
       }
     }
 
-    /* 一级菜单项尺寸 */
+    /* 一级菜单项尺寸 + 强制 padding-left 24px，
+     * 让一级 icon 的 X 坐标与上方 logo 飞机标的 X 坐标对齐到同一垂直线。 */
     > .el-menu-item,
     > .el-sub-menu > .el-sub-menu__title {
       height: 48px !important;
       line-height: 48px !important;
+      padding-left: 24px !important;
+      padding-right: 16px !important;
       font-size: 14px;
 
       > .el-icon {
@@ -259,11 +273,12 @@ function onCommand(cmd: string) {
       padding: 4px 0 !important;
     }
 
-    /* 二级菜单项 */
+    /* 二级菜单项：padding-left 在一级 24px 基础上再多 24px 形成层级缩进 */
     .el-sub-menu .el-menu-item {
       height: 40px !important;
       line-height: 40px !important;
-      padding-left: 32px !important;
+      padding-left: 48px !important;
+      padding-right: 16px !important;
       font-size: 13px;
 
       > .el-icon {
