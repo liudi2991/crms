@@ -3,7 +3,7 @@
     <el-aside :width="collapsed ? '64px' : '220px'" class="aside">
       <div class="logo">
         <el-icon class="logo-mark"><Promotion /></el-icon>
-        <span v-if="!collapsed" class="logo-text">CRMS 合同回款</span>
+        <span v-if="!collapsed" class="logo-text">合同回款管理系统</span>
       </div>
       <el-scrollbar class="menu-scroll">
         <el-menu
@@ -156,11 +156,12 @@ function onCommand(cmd: string) {
   flex-direction: column;
 
   .logo {
-    height: 56px;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    padding: 0 12px;
     color: #fff;
     font-weight: 600;
     background: #002140;
@@ -171,18 +172,21 @@ function onCommand(cmd: string) {
     .logo-mark {
       font-size: 22px;
       color: #4096ff;
+      flex-shrink: 0;
     }
     .logo-text {
-      font-size: 16px;
-      letter-spacing: 0.5px;
+      font-size: 15px;
+      letter-spacing: 0.3px;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 
   .menu-scroll {
     flex: 1;
-    /* 隐藏水平滚动条，保持菜单干净 */
     :deep(.el-scrollbar__view) {
       height: 100%;
+      padding: 8px 0;
     }
   }
 
@@ -190,68 +194,104 @@ function onCommand(cmd: string) {
     border-right: none;
     background-color: #001529 !important;
 
-    /* 一级菜单项 */
+    /* 所有菜单项（一级和二级）的胶囊背景统一用 ::before 伪元素实现，
+     * 绕开 element-plus 给 .el-menu-item 加的 inline width: 100%
+     * 与 padding-left，确保胶囊宽度可预测、左右各内缩 8px。
+     *
+     * isolation: isolate 在 li 内部建立一个新的 stacking context，
+     * 这样 ::before z-index: -1 只会在 li 内部"沉到底"，不会跑到 li 后面。
+     * 文本节点（element-plus 直接把标题作为 text node 渲染）就能盖住胶囊。
+     */
     .el-menu-item,
     .el-sub-menu__title {
-      height: 44px;
-      line-height: 44px;
-      margin: 2px 8px;
-      border-radius: 6px;
-      transition: background-color 0.15s, color 0.15s;
+      position: relative;
+      isolation: isolate;
+      background-color: transparent !important;
+      transition: color 0.15s;
 
-      .el-icon {
-        font-size: 16px;
-        margin-right: 8px;
+      &::before {
+        content: '';
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        top: 4px;
+        bottom: 4px;
+        border-radius: 8px;
+        background-color: transparent;
+        transition: background-color 0.15s, box-shadow 0.15s;
+        pointer-events: none;
+        z-index: -1;
       }
 
-      &:hover {
-        background-color: rgba(255, 255, 255, 0.06) !important;
-        color: #fff !important;
+      &:hover::before {
+        background-color: rgba(255, 255, 255, 0.08);
       }
     }
 
-    /* 一级激活态：实色蓝底 + 加粗文字 */
+    /* 一级菜单项尺寸 */
+    > .el-menu-item,
+    > .el-sub-menu > .el-sub-menu__title {
+      height: 48px !important;
+      line-height: 48px !important;
+      font-size: 14px;
+
+      > .el-icon {
+        font-size: 16px;
+        margin-right: 10px;
+        width: 16px;
+      }
+    }
+
+    /* 一级激活态 */
     > .el-menu-item.is-active {
-      background-color: #1677ff !important;
       color: #fff !important;
       font-weight: 500;
+
+      &::before {
+        background-color: #1677ff;
+        box-shadow: 0 2px 8px rgba(22, 119, 255, 0.35);
+      }
     }
 
-    /* sub-menu 展开容器：背景比父级深一点（暗主题下显示二级层级感） */
+    /* sub-menu 展开容器：背景比父级深一档 */
     .el-sub-menu .el-menu {
       background-color: #000c17 !important;
-      padding: 4px 0;
+      padding: 4px 0 !important;
     }
 
-    /* 二级菜单项：相对父级 sub-menu title 多 16px 缩进，
-     * 覆盖 element-plus 默认通过 inline style padding-left 的行为，
-     * 否则窄主题下视觉上会感觉子菜单"没有缩进"或反向偏移。
-     */
+    /* 二级菜单项 */
     .el-sub-menu .el-menu-item {
-      height: 38px;
-      line-height: 38px;
-      padding-left: 44px !important;
-      margin: 2px 8px;
+      height: 40px !important;
+      line-height: 40px !important;
+      padding-left: 32px !important;
       font-size: 13px;
 
-      .el-icon {
+      > .el-icon {
         font-size: 14px;
-        margin-right: 6px;
-        opacity: 0.85;
+        margin-right: 8px;
+        width: 14px;
+        opacity: 0.75;
       }
 
       &.is-active {
-        background-color: #1677ff !important;
         color: #fff !important;
         font-weight: 500;
 
-        .el-icon {
+        &::before {
+          background-color: #1677ff;
+          box-shadow: 0 2px 8px rgba(22, 119, 255, 0.35);
+        }
+
+        > .el-icon {
           opacity: 1;
         }
       }
     }
 
-    /* sub-menu title 处于"展开/激活后代"时高亮箭头 */
+    /* 二级菜单项的 ::before 与一级保持一致的左右内缩 8px，
+     * 但因为 sub-menu 容器底色已经更深，看起来层级清晰。 */
+
+    /* sub-menu 展开后的标题箭头跟着白起来 */
     .el-sub-menu.is-active > .el-sub-menu__title {
       color: #fff !important;
 
@@ -260,12 +300,14 @@ function onCommand(cmd: string) {
       }
     }
 
-    /* collapse 折叠时把每项的左右 margin 抹平，避免出现"左缩进 + tooltip 错位" */
+    /* collapse 折叠状态：取消胶囊视觉，恢复 element-plus 默认居中 icon */
     &.el-menu--collapse {
       .el-menu-item,
       .el-sub-menu__title {
-        margin: 2px 0;
-        border-radius: 0;
+        &::before {
+          left: 4px;
+          right: 4px;
+        }
       }
     }
   }
