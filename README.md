@@ -87,7 +87,29 @@ crms/
 
 > ✅ **参考实现** 表示该模块已包含从 Mapper → Service → Controller → DTO/VO 的端到端骨架与关键算法，可作为后续 AI 辅助任务的"金标准"模板。
 
-## 快速开始
+## 一键部署（推荐生产 / 演示环境）
+
+> 一台干净的 Ubuntu 20.04+ / Debian 11+ 云主机，2 核 4G 起步，三条命令装完。详见 [INSTALL.md](./INSTALL.md)。
+
+```bash
+# 1. 下载安装包（替换为 release 页面给出的链接）
+curl -fsSL https://github.com/liudi2991/crms/releases/latest/download/crms-installer.tar.gz \
+  -o crms-installer.tar.gz
+
+# 2. 解压
+tar xzf crms-installer.tar.gz && cd crms-installer-*
+
+# 3. 一键安装（装 Docker → 编译镜像 → 拉起容器，约 10 分钟）
+sudo ./install.sh
+```
+
+装好后浏览器访问 `http://<你的公网IP>/`，默认账号 `admin` / `Admin@12345`。
+
+云厂商安全组要放行：`80/tcp`（前端）+ `9000/tcp`（MinIO 附件下载）+ `22/tcp`（SSH）。
+
+> 已发布的版本：见 [Releases](https://github.com/liudi2991/crms/releases)。
+
+## 快速开始（本地源码开发）
 
 ### 前置依赖
 - Java 17+ / Maven 3.9+
