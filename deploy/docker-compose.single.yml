@@ -99,6 +99,10 @@ services:
       CRMS_DEFAULT_PASSWORD: ${CRMS_DEFAULT_PASSWORD:-Crms@123456}
     volumes:
       - ./logs/app:/app/logs
+      # 本地存储模式（crms.storage.type=local）下附件落在 /app/uploads，
+      # 必须挂出来，否则容器升级 recreate 会带走所有上传过的文件。
+      # 切到 MinIO（crms.storage.type=minio）时此卷不再被写入，但保留无害。
+      - ./data/uploads:/app/uploads
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q '\"status\":\"UP\"' || exit 1"]
       interval: 30s
