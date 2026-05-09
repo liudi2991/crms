@@ -14,12 +14,16 @@
 ## 三步装完
 
 ```bash
-# 1. 下载安装包（替换成 release 页面给出的链接）
-curl -fsSL https://github.com/liudi2991/crms/releases/latest/download/crms-installer.tar.gz \
+# 1. 下载安装包（从 release 页面拿最新版本号）
+curl -fsSL https://github.com/liudi2991/crms/releases/download/v1.0.2/crms-installer-v1.0.2.tar.gz \
   -o crms-installer.tar.gz
 
-# 2. 解压
-tar xzf crms-installer.tar.gz && cd crms-installer-*
+# 2. 校验完整性（可选，但推荐）
+curl -fsSL https://github.com/liudi2991/crms/releases/download/v1.0.2/crms-installer-v1.0.2.tar.gz.sha256 \
+  | shasum -a 256 -c -
+
+# 3. 解压
+tar xzf crms-installer.tar.gz && cd crms-installer-v1.0.2
 
 # 3. 安装（全自动：装 Docker → 生成密钥 → 编译镜像 → 拉起容器）
 sudo ./install.sh

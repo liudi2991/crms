@@ -92,12 +92,12 @@ crms/
 > 一台干净的 Ubuntu 20.04+ / Debian 11+ 云主机，2 核 4G 起步，三条命令装完。详见 [INSTALL.md](./INSTALL.md)。
 
 ```bash
-# 1. 下载安装包（替换为 release 页面给出的链接）
-curl -fsSL https://github.com/liudi2991/crms/releases/latest/download/crms-installer.tar.gz \
+# 1. 从 release 页面拿到 tarball 链接（latest 自动指向最新版）
+curl -fsSL https://github.com/liudi2991/crms/releases/download/v1.0.2/crms-installer-v1.0.2.tar.gz \
   -o crms-installer.tar.gz
 
 # 2. 解压
-tar xzf crms-installer.tar.gz && cd crms-installer-*
+tar xzf crms-installer.tar.gz && cd crms-installer-v1.0.2
 
 # 3. 一键安装（装 Docker → 编译镜像 → 拉起容器，约 10 分钟）
 sudo ./install.sh
