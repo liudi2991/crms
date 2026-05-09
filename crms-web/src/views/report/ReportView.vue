@@ -370,7 +370,11 @@ async function onExport(name: 'trend' | 'aging' | 'top-customers' | 'todos') {
   const url = reportApi.exportUrl(name)
   const token = tokenStore.get()
   try {
-    const res = await fetch(url, { headers: token ? { satoken: token } : {} })
+    /* 后端 sa-token 配置 token-name=Authorization + token-prefix=Bearer，
+     * 必须用 Authorization: Bearer <token>，原来的 satoken header 会 401 */
+    const res = await fetch(url, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const blob = await res.blob()
     const link = document.createElement('a')
