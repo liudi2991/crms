@@ -81,7 +81,10 @@ crms:
       root: ${CRMS_STORAGE_LOCAL_ROOT:./uploads}
       bucket: ${CRMS_STORAGE_LOCAL_BUCKET:crms-local}
     minio:
+      # 服务端内部 endpoint，put/get 走容器网络
       endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+      # 浏览器可达的对外 endpoint，用于生成预签名下载 URL；不配置时回退到 endpoint
+      public-endpoint: ${MINIO_PUBLIC_ENDPOINT:}
       access-key: ${MINIO_ACCESS_KEY:minioadmin}
       secret-key: ${MINIO_SECRET_KEY:minioadmin}
       bucket: ${MINIO_BUCKET:crms}

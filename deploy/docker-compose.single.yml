@@ -62,7 +62,11 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?未设置 MINIO_ROOT_PASSWORD}
     volumes:
       - ./data/minio:/data
+    # MinIO 9000 端口暴露到宿主机：浏览器要直接打开预签名 URL 下载附件，
+    # 必须能解析到 host。设置防火墙时记得放行 9000/tcp。
     # MinIO 控制台 9001 仅在调试时手动 docker compose port minio 9001 暴露
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 10s
@@ -91,7 +95,11 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       CRMS_STORAGE_TYPE: ${CRMS_STORAGE_TYPE:-minio}
+      # 服务端内部 endpoint，put/get 走容器网络
       MINIO_ENDPOINT: http://minio:9000
+      # 浏览器可达的对外 endpoint，必须配置为公网/内网 IP 或域名（含 :9000）
+      # 否则前端预览/下载会跳转到 http://minio:9000 → DNS 解析失败
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-}
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: ${MINIO_BUCKET:-crms}

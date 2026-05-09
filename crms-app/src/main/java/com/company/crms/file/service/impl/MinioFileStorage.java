@@ -16,8 +16,8 @@ import io.minio.RemoveObjectArgs;
 import io.minio.errors.MinioException;
 import io.minio.http.Method;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -42,13 +42,25 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Component
-@RequiredArgsConstructor
 @ConditionalOnProperty(prefix = "crms.storage", name = "type", havingValue = "minio")
 public class MinioFileStorage implements FileStorage {
 
+    /** 服务端内部用：put/get/delete 走 docker 网络 host（如 http://minio:9000）。 */
     private final MinioClient client;
+    /** 仅生成预签名 URL 用：host 必须是浏览器可达的对外地址。 */
+    private final MinioClient presignClient;
     private final MinioProperties props;
     private final FileObjectMapper fileObjectMapper;
+
+    public MinioFileStorage(MinioClient client,
+                            @Qualifier("minioPresignClient") MinioClient presignClient,
+                            MinioProperties props,
+                            FileObjectMapper fileObjectMapper) {
+        this.client = client;
+        this.presignClient = presignClient;
+        this.props = props;
+        this.fileObjectMapper = fileObjectMapper;
+    }
 
     @PostConstruct
     public void ensureBucket() {
@@ -126,7 +138,8 @@ public class MinioFileStorage implements FileStorage {
         }
         int expiry = expireSeconds <= 0 ? 600 : expireSeconds;
         try {
-            return client.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
+            // 必须用 presignClient（公网 endpoint），浏览器才能解析到 host
+            return presignClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                     .method(Method.GET)
                     .bucket(props.getBucket())
                     .object(fo.getObjectKey())
